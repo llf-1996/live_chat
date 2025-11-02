@@ -1,0 +1,13 @@
+# pip install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
+fastapi==0.120.4
+uvicorn==0.38.0
+sqlalchemy==2.0.44
+aiosqlite==0.21.0
+pydantic==2.12.3
+python-multipart==0.0.20
+websockets==15.0.1
+python-jose==3.5.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-dotenv==1.2.1
+Pillow==9.5.0
