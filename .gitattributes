@@ -1,0 +1,41 @@
+# 强制所有文本文件使用 LF 行尾符（Unix 风格）
+* text=auto eol=lf
+
+# Shell 脚本必须使用 LF
+*.sh text eol=lf
+
+# Python 文件使用 LF
+*.py text eol=lf
+
+# 配置文件使用 LF
+*.ini text eol=lf
+*.conf text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+
+# 前端文件使用 LF
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.vue text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+
+# 二进制文件不转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.db binary
+*.sqlite binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+

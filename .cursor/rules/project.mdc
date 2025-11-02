@@ -14,6 +14,7 @@ alwaysApply: true
 - Python 3.11+
 - FastAPI (异步 Web 框架)
 - SQLite + SQLAlchemy (异步 ORM)
+- Alembic (数据库迁移管理)
 - WebSocket (实时通信)
 - Uvicorn (ASGI 服务器)
 
@@ -142,6 +143,70 @@ alwaysApply: true
   - 半屏弹窗（`el-drawer` direction="btt" size="70%"）
   - 选择会话自动切换到聊天视图（`@conversation-selected` 事件）
 
+## 文档规范
+
+### 文档结构原则
+
+**❌ 不要创建多个独立的 .md 文档**  
+**✅ 将所有相关内容整合到对应的 README.md 中**
+
+### 文档层级
+
+项目采用三级文档结构：
+
+1. **根目录 `README.md`** - 项目概览
+   - 项目介绍和核心特性
+   - 环境要求
+   - 快速开始（完整流程）
+   - 使用教程
+   - 功能规划
+   - 相关文档索引
+
+2. **`backend/README.md`** - 后端完整技术文档
+   - 技术栈详情
+   - 环境变量配置（完整章节）
+   - 数据库设计
+   - 数据库迁移管理（完整章节）
+   - SQLite 特殊配置（完整章节）
+   - API 规范
+   - WebSocket 说明
+   - 开发指南
+   - 性能优化
+   - 常见问题
+
+3. **`frontend/README.md`** - 前端完整技术文档
+   - 技术栈详情
+   - Vite 配置说明
+   - 路由配置
+   - 组件说明
+   - 状态管理
+   - API 调用规范
+   - 响应式设计指南
+   - 部署配置
+
+### 文档编写规范
+
+**禁止创建的独立文档：**
+- ❌ `backend/ENV_README.md` - 应整合到 `backend/README.md` 的"环境变量配置"章节
+- ❌ `backend/MIGRATION_README.md` - 应整合到 `backend/README.md` 的"数据库迁移管理"章节
+- ❌ `backend/SQLITE_CONFIG.md` - 应整合到 `backend/README.md` 的"SQLite 特殊配置"章节
+- ❌ `docs/xxx/README.md` - 特殊说明应整合到对应的主文档中
+
+**允许的独立文档：**
+- ✅ `README.md` - 项目根目录
+- ✅ `backend/README.md` - 后端技术文档
+- ✅ `frontend/README.md` - 前端技术文档
+- ✅ `.cursor/rules/project.mdc` - 项目开发规范（本文件）
+- ✅ `alembic/README` - Alembic 快速命令参考（简短）
+
+### 优势
+
+1. **文档集中** - 相关内容都在同一个文档中，无需跳转
+2. **易于维护** - 减少文档数量，降低维护成本
+3. **查找方便** - 使用目录结构快速定位，无需记忆多个文档路径
+4. **避免重复** - 统一文档避免内容重复和不一致
+5. **新人友好** - 只需阅读对应角色的 README.md 即可上手
+
 ## 项目结构
 
 ```
@@ -153,7 +218,8 @@ backend/
 │   ├── database.py       # 数据库连接配置
 │   └── websocket.py      # WebSocket 连接管理
 ├── main.py               # FastAPI 应用入口
-└── requirements.txt      # Python 依赖
+├── requirements.txt      # Python 依赖
+└── README.md             # 后端完整技术文档（包含所有后端相关说明）
 
 frontend/
 ├── src/
@@ -167,7 +233,8 @@ frontend/
 │   ├── App.vue           # 根组件（路由容器）
 │   └── main.js           # 应用入口
 ├── package.json
-└── vite.config.js
+├── vite.config.js
+└── README.md             # 前端完整技术文档（包含所有前端相关说明）
 ```
 
 ## API 接口设计原则
@@ -302,9 +369,15 @@ for admin_id in admin_users:
 
 ### 修改数据库模型
 1. 修改 `backend/app/models.py`
-2. 删除 `backend/live_chat.db` 文件
-3. 重启后端服务（自动重建数据库）
-4. 更新对应的 Pydantic schema
+2. 生成迁移文件：`alembic revision --autogenerate -m "描述变更"`
+3. 检查生成的迁移文件（`alembic/versions/` 目录）
+4. 应用迁移：`alembic upgrade head`
+5. 更新对应的 Pydantic schema
+
+**注意事项：**
+- 不要直接删除数据库文件，使用 Alembic 管理数据库结构变更
+- SQLite 不支持删除列、修改列类型等操作，Alembic 会自动使用批量模式处理（复制表）
+- 详细文档：查看 `backend/README.md` 中的"数据库迁移管理"和"SQLite 特殊配置"章节
 
 ## 测试和调试
 

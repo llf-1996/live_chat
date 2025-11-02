@@ -1,8 +1,10 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Boolean, Enum as SQLEnum
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, declarative_base
 import time
 import enum
-from .database import Base
+
+# 创建 Base 类（用于 Alembic 迁移）
+Base = declarative_base()
 
 
 def get_timestamp():
