@@ -1,9 +1,22 @@
 <template>
   <div class="login-container">
+    <!-- 装饰性背景圆圈 -->
+    <div class="bg-decoration">
+      <div class="circle circle-1"></div>
+      <div class="circle circle-2"></div>
+      <div class="circle circle-3"></div>
+    </div>
+
     <div class="login-box">
+      <!-- Logo 区域 -->
       <div class="login-header">
-        <h1 class="login-title">客服后台登录</h1>
-        <p class="login-subtitle">在线客服系统</p>
+        <div class="logo-wrapper">
+          <el-icon :size="48" class="logo-icon">
+            <ChatDotRound />
+          </el-icon>
+        </div>
+        <h1 class="login-title">客服后台管理</h1>
+        <p class="login-subtitle">Live Chat Admin System</p>
       </div>
 
       <el-form
@@ -47,14 +60,15 @@
             :loading="loading"
             @click="handleLogin"
           >
-            {{ loading ? '登录中...' : '登录' }}
+            <span v-if="!loading">登 录</span>
+            <span v-else>登录中...</span>
           </el-button>
         </el-form-item>
       </el-form>
 
       <div class="login-footer">
-        <p>提示：只有管理员可以登录此页面</p>
-        <p>如需创建管理员账号，请使用命令行工具</p>
+        <el-icon class="info-icon"><InfoFilled /></el-icon>
+        <p class="footer-text">首次使用请联系技术人员创建管理员账号</p>
       </div>
     </div>
   </div>
@@ -64,7 +78,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { User, Lock } from '@element-plus/icons-vue'
+import { User, Lock, ChatDotRound, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -132,42 +146,151 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ==================== 容器布局 ==================== */
 .login-container {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
   padding: 20px;
+  overflow: hidden;
 }
 
-.login-box {
+/* ==================== 装饰性背景 ==================== */
+.bg-decoration {
+  position: absolute;
   width: 100%;
-  max-width: 420px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  animation: float 20s infinite ease-in-out;
+}
+
+.circle-1 {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  right: -100px;
+  animation-delay: 0s;
+}
+
+.circle-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -80px;
+  left: -80px;
+  animation-delay: 5s;
+}
+
+.circle-3 {
+  width: 150px;
+  height: 150px;
+  top: 50%;
+  left: -75px;
+  animation-delay: 10s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+  66% {
+    transform: translateY(10px) rotate(-5deg);
+  }
+}
+
+/* ==================== 登录框 ==================== */
+.login-box {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15),
+              0 0 1px rgba(0, 0, 0, 0.1);
+  padding: 48px 40px;
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== 头部区域 ==================== */
 .login-header {
   text-align: center;
   margin-bottom: 40px;
 }
 
+.logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+  }
+}
+
+.logo-icon {
+  color: white;
+}
+
 .login-title {
   font-size: 28px;
-  font-weight: 600;
-  color: #303133;
+  font-weight: 700;
+  color: #1e293b;
   margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
 }
 
 .login-subtitle {
-  font-size: 14px;
-  color: #909399;
+  font-size: 13px;
+  color: #64748b;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
 }
 
+/* ==================== 表单 ==================== */
 .login-form {
   margin-top: 0;
 }
@@ -180,33 +303,102 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
+.login-form :deep(.el-input__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s;
+}
+
+.login-form :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.login-form :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
 .login-button {
   width: 100%;
   height: 48px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 1px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  transition: all 0.3s;
 }
 
+.login-button:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+/* ==================== 底部提示 ==================== */
 .login-footer {
-  margin-top: 30px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
   text-align: center;
-  font-size: 13px;
-  color: #909399;
+}
+
+.info-icon {
+  font-size: 20px;
+  color: #3b82f6;
+  margin-bottom: 12px;
+}
+
+.footer-text {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
   line-height: 1.6;
 }
 
-.login-footer p {
-  margin: 4px 0;
-}
-
-/* 响应式 */
+/* ==================== 响应式 ==================== */
 @media (max-width: 768px) {
+  .login-container {
+    padding: 16px;
+  }
+
   .login-box {
-    padding: 30px 20px;
+    padding: 36px 24px;
+  }
+
+  .logo-wrapper {
+    width: 70px;
+    height: 70px;
+  }
+
+  .logo-icon {
+    font-size: 40px !important;
   }
 
   .login-title {
     font-size: 24px;
+  }
+
+  .login-subtitle {
+    font-size: 12px;
+  }
+
+  .circle-1 {
+    width: 200px;
+    height: 200px;
+  }
+
+  .circle-2 {
+    width: 150px;
+    height: 150px;
+  }
+
+  .circle-3 {
+    display: none;
   }
 }
 </style>

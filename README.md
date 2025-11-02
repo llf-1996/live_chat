@@ -13,6 +13,23 @@
 - ⚡ **快捷回复** - 商户快捷消息模板
 - 🛡️ **异常处理** - 全局友好错误提示
 
+## 📸 界面预览
+
+### 客服后台管理
+#### 登录
+<img src="docs/screenshots/login.png" alt="管理员登录页面" width="800">
+
+#### 首页
+<img src="docs/screenshots/admin_index.png" alt="客服后台管理页面" width="800">
+
+### 聊天界面（桌面端）
+<img src="docs/screenshots/chat_pc.png" alt="桌面端聊天界面" width="800">
+
+### 移动端适配
+<img src="docs/screenshots/chat_mobile.png" alt="移动端聊天界面" width="280">
+
+<img src="docs/screenshots/chat_mobile_2.png" alt="移动端聊天界面" width="280">
+
 ## 🛠️ 技术栈
 
 **后端：** Python 3.11 + FastAPI + SQLite + SQLAlchemy + WebSocket  
@@ -64,8 +81,8 @@ pnpm dev
 
 **访问：**
 - 前端：http://localhost:5173
-- API 文档1：http://localhost:8000/docs
-- API 文档2：http://localhost:8000/redoc
+- API 文档：http://localhost:8000/docs（Swagger UI）
+- API 文档：http://localhost:8000/redoc（ReDoc）
 
 
 ## 🚀 快速访问
@@ -129,7 +146,6 @@ http://localhost:5173/login
 - **列表格式**：`{ count: 总数, results: [...] }`
 - **分页参数**：`page` 和 `page_size`
 - **静态资源**：数据库存相对路径，API 返完整 URL（通过 `BASE_URL` 配置）
-- **完整文档**：http://localhost:8000/docs
 
 ### 消息推送
 - **双通道**：HTTP 持久化 + WebSocket 实时推送
@@ -177,6 +193,7 @@ python change_password.py a1 new_password     # 修改
 
 ## 🔮 待优化
 
+- [ ] 历史订单
 - [ ] 买家/商户注册登录
 - [ ] 群聊功能
 - [ ] 消息撤回/搜索
