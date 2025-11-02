@@ -12,24 +12,47 @@
 
     <!-- 工具栏 -->
     <div v-if="!isAdmin" class="toolbar">
-      <el-upload
-        :show-file-list="false"
-        :before-upload="handleFileUpload"
-        accept="*/*"
-        :disabled="isAdmin"
-      >
-        <el-button :icon="Folder" link :disabled="isAdmin">文件</el-button>
-      </el-upload>
+      <div class="toolbar-left">
+        <el-upload
+          :show-file-list="false"
+          :before-upload="handleFileUpload"
+          accept="*/*"
+          :disabled="isAdmin"
+        >
+          <el-button :icon="Folder" link :disabled="isAdmin">文件</el-button>
+        </el-upload>
 
-      <el-upload
-        :show-file-list="false"
-        :before-upload="handleImageUpload"
-        accept="image/*"
-        :disabled="isAdmin"
-      >
-        <el-button :icon="Picture" link :disabled="isAdmin">图片</el-button>
-      </el-upload>
+        <el-upload
+          :show-file-list="false"
+          :before-upload="handleImageUpload"
+          accept="image/*"
+          :disabled="isAdmin"
+        >
+          <el-button :icon="Picture" link :disabled="isAdmin">图片</el-button>
+        </el-upload>
+      </div>
+      
+      <!-- 手机端：更多按钮（只显示图标） -->
+      <el-button 
+        v-if="isMobile" 
+        :icon="MoreFilled" 
+        link 
+        class="more-button"
+        @click="showMoreDrawer = true"
+      />
     </div>
+
+    <!-- 手机端：更多菜单半屏弹窗 -->
+    <el-drawer
+      v-model="showMoreDrawer"
+      direction="btt"
+      size="70%"
+      :modal="true"
+      :show-close="true"
+      title="更多"
+    >
+      <OrderPanel @use-quick-reply="handleQuickReply" />
+    </el-drawer>
 
     <!-- 输入框 -->
     <div v-if="!isAdmin" class="input-area">
@@ -37,7 +60,7 @@
         v-model="inputMessage"
         type="textarea"
         :rows="3"
-        :placeholder="isAdmin ? '管理员无法发送消息' : '按 Ctrl+Enter 快捷发送'"
+        :placeholder="placeholderText"
         :disabled="isAdmin"
         @keydown="handleKeyDown"
         resize="none"
@@ -48,28 +71,58 @@
         :disabled="isAdmin || !inputMessage.trim()"
         @click="sendMessage"
       >
-        发送 Enter
+        {{ sendButtonText }}
       </el-button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useChatStore } from '../stores/chat'
 import { ElMessage } from 'element-plus'
-import { Folder, Picture } from '@element-plus/icons-vue'
+import { Folder, Picture, MoreFilled } from '@element-plus/icons-vue'
+import OrderPanel from './OrderPanel.vue'
 import api from '../api/chat'
 
 const chatStore = useChatStore()
 const inputMessage = ref('')
+const showMoreDrawer = ref(false)
 
 // 检查当前用户是否是管理员（只读权限）
 const isAdmin = computed(() => chatStore.currentUser.role === 'admin')
 
+// 响应式判断是否为手机端
+const isMobile = ref(window.innerWidth < 768)
+const handleResize = () => {
+  isMobile.value = window.innerWidth < 768
+}
+window.addEventListener('resize', handleResize)
+
+// 组件卸载时清理事件监听器
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+// 根据设备类型显示不同的提示文字
+const placeholderText = computed(() => {
+  if (isAdmin.value) return '管理员无法发送消息'
+  return isMobile.value ? '请输入消息' : '按 Ctrl+Enter 快捷发送'
+})
+
+const sendButtonText = computed(() => {
+  return isMobile.value ? '发送' : '发送 Enter'
+})
+
 // 暴露方法供外部调用
 function setInputMessage(content) {
   inputMessage.value = content
+}
+
+// 处理快捷消息（手机端弹窗使用）
+function handleQuickReply(content) {
+  inputMessage.value = content
+  showMoreDrawer.value = false // 关闭弹窗
 }
 
 defineExpose({
@@ -128,8 +181,24 @@ async function handleFileUpload(file) {
 .toolbar {
   padding: 8px 16px;
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 4px;
+}
+
+.more-button {
+  font-size: 20px;
+  padding: 8px;
+  color: #606266;
+}
+
+.more-button:hover {
+  color: #409eff;
 }
 
 .input-area {
@@ -156,5 +225,40 @@ async function handleFileUpload(file) {
 
 .send-button {
   height: 36px;
+}
+
+/* ==================== 响应式媒体查询 ==================== */
+
+/* 手机端 (<768px) */
+@media (max-width: 767px) {
+  .toolbar {
+    padding: 6px 12px;
+  }
+  
+  .input-area {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  
+  .input-area :deep(.el-textarea__inner) {
+    font-size: 15px; /* 手机端字体稍大，更易输入 */
+  }
+  
+  .send-button {
+    height: 38px;
+    padding: 0 16px;
+  }
+}
+
+/* 手机端更多菜单弹窗样式 */
+:deep(.el-drawer__body) {
+  padding: 0;
+  overflow-y: auto;
+}
+
+:deep(.el-drawer__header) {
+  margin-bottom: 0;
+  padding: 16px;
+  border-bottom: 1px solid #e4e7ed;
 }
 </style>

@@ -45,7 +45,6 @@
           </span>
         </span>
       </template>
-      <el-icon class="more-icon"><MoreFilled /></el-icon>
     </div>
 
     <!-- 空状态 -->
@@ -124,7 +123,7 @@
 import { computed, watch, nextTick, ref } from 'vue'
 import { useChatStore } from '../stores/chat'
 import MessageInput from './MessageInput.vue'
-import { MoreFilled, Document, Right, Select, Loading } from '@element-plus/icons-vue'
+import { Document, Right, Select, Loading } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()
 const messageListRef = ref(null)
@@ -226,12 +225,22 @@ function getSenderName(senderId) {
 }
 
 function getEmptyDescription() {
-  const descriptions = {
-    buyer: '请选择商家开始聊天',
-    merchant: '请选择客户开始聊天',
-    admin: '请选择会话查看聊天记录'
+  // 判断是否为手机端
+  const isMobile = window.innerWidth < 768
+  
+  if (isMobile) {
+    // 手机端：明确指引用户点击底部菜单
+
+    return '👇 点击底部「会话」选择聊天对象'
+  } else {
+    // 桌面端：简洁提示
+    const desktopDescriptions = {
+      buyer: '请从左侧选择商家开始聊天',
+      merchant: '请从左侧选择客户开始聊天',
+      admin: '请从左侧选择会话查看聊天记录'
+    }
+    return desktopDescriptions[chatStore.currentUser.role] || '请选择会话'
   }
-  return descriptions[chatStore.currentUser.role] || '请选择会话'
 }
 
 function formatTime(timestamp) {
@@ -406,13 +415,6 @@ watch(currentConversation, () => {
   box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.2);
 }
 
-.more-icon {
-  margin-left: auto;
-  font-size: 20px;
-  color: #909399;
-  cursor: pointer;
-}
-
 .empty-state {
   flex: 1;
   display: flex;
@@ -528,5 +530,77 @@ watch(currentConversation, () => {
 
 .loading-more {
   color: #409eff;
+}
+
+/* ==================== 响应式媒体查询 ==================== */
+
+/* 平板端 (768px-1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .chat-header {
+    height: 54px;
+    padding: 0 16px;
+  }
+  
+  .message-list {
+    padding: 16px;
+  }
+  
+  .message-content {
+    max-width: 65%;
+  }
+}
+
+/* 手机端 (<768px) */
+@media (max-width: 767px) {
+  .chat-header {
+    height: 50px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  
+  .merchant-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  
+  .merchant-name {
+    font-size: 14px;
+  }
+  
+  .header-online-status {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  
+  .message-list {
+    padding: 12px;
+  }
+  
+  .message-wrapper {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .message-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .message-content {
+    max-width: 70%;
+  }
+  
+  .message-info {
+    font-size: 11px;
+  }
+  
+  .message-bubble {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .message-image {
+    max-width: 180px;
+  }
 }
 </style>

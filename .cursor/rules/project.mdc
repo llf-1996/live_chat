@@ -127,6 +127,21 @@ alwaysApply: true
 - Element Plus 组件按需引入
 - 样式使用 scoped CSS
 
+#### 5. 响应式设计规范
+- **断点标准**：手机 <768px，平板 768-1023px，桌面 ≥1024px
+- **布局适配**：
+  - 手机端：单栏布局 + 底部导航（`activePanel` 控制显示）
+  - 平板端：左侧列表 + 中间聊天 + 右侧面板
+  - 桌面端：标准三栏布局
+- **全屏设计**：聊天页面使用 `100vw` 和 `100vh`，无边距
+- **响应式判断**：使用 `isMobile` ref + `window.resize` 监听
+- **字体和间距**：根据设备类型调整 `font-size`、`padding`、`gap`
+- **移动端优化**：
+  - 隐藏键盘快捷键提示（Ctrl+Enter）
+  - 使用通用图标（如 `MoreFilled` 表示更多菜单）
+  - 半屏弹窗（`el-drawer` direction="btt" size="70%"）
+  - 选择会话自动切换到聊天视图（`@conversation-selected` 事件）
+
 ## 项目结构
 
 ```
@@ -192,6 +207,58 @@ frontend/
 - Message → User：`sender` 关系
 - Message → Conversation：多对一关系
 
+## 响应式布局实现
+
+### 设备检测
+```javascript
+const isMobile = ref(window.innerWidth < 768)
+const handleResize = () => {
+  isMobile.value = window.innerWidth < 768
+}
+window.addEventListener('resize', handleResize)
+```
+
+### 手机端布局（<768px）
+- **单栏显示**：同一时间只显示一个面板
+- **状态控制**：使用 `activePanel` ref 切换视图（'list' / 'chat'）
+- **底部导航**：2 个按钮（会话、聊天）
+- **自动切换**：选择会话后自动跳转到聊天视图
+- **更多菜单**：集成到输入框工具栏，使用半屏弹窗
+
+### 平板端布局（768-1023px）
+- **双栏显示**：左侧会话列表 + 右侧聊天窗口
+- **隐藏面板**：更多功能面板隐藏或收起
+
+### 桌面端布局（≥1024px）
+- **三栏显示**：左侧列表 + 中间聊天 + 右侧面板
+- **固定宽度**：左侧 320px，右侧 300px，中间自适应
+
+### 样式适配示例
+```css
+/* 手机端 */
+@media (max-width: 767px) {
+  .chat-header {
+    height: 50px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+}
+
+/* 平板端 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .chat-header {
+    height: 54px;
+    padding: 0 16px;
+  }
+}
+
+/* 桌面端（默认） */
+.chat-header {
+  height: 60px;
+  padding: 0 20px;
+}
+```
+
 ## 消息推送逻辑
 
 ### 推送规则
@@ -241,11 +308,24 @@ for admin_id in admin_users:
 
 ## 测试和调试
 
-### 测试用户
-- 管理员：`a1`
-- 官方客服：`p1`
-- 买家：`b1`
-- 商户：`m1` - `m9`
+### 内置测试用户
+
+系统启动时会自动创建以下测试用户：
+
+**管理员**
+- `a1`, `a2` - admin（需通过命令行 `create_admin.py` 创建）
+
+**买家**
+- `b1` - 保安堂药房（传统药房）
+- `b2` - 异世界药局（现代连锁药局）
+
+**商户**
+- `m1` - 保和堂医药集团（大型医药集团）
+- `m2` - 阿纳斯蒂制药（神经科学药企）
+- `m3` - 梅迪西斯制药（天然植物药厂）
+
+**官方客服**
+- `p1` - 官方客服（平台客服）
 
 ### 快速测试
 ```bash
@@ -270,12 +350,45 @@ http://localhost:5173/admin?user_id=a1
 6. **管理员只读**：管理员角色无法发送消息，只能监控
 7. **会话自动创建**：使用 `target` 参数时，不存在的会话会自动创建
 8. **用户验证**：所有页面必须验证 `user_id` 是否有效
+9. **响应式设计**：
+   - 所有新组件必须支持响应式适配（手机/平板/桌面）
+   - 使用 CSS 媒体查询 `@media (max-width: 767px)`（手机）和 `@media (min-width: 768px) and (max-width: 1023px)`（平板）
+   - 手机端隐藏不必要的文字提示（如快捷键）
+   - 移动端使用触控友好的尺寸（按钮最小 44×44px）
+10. **文件上传规范**：
+    - 保留原始文件名，格式：`原文件名_{时间戳}.扩展名`
+    - 按日期目录存储：`media/uploads/{年}/{月}/{日}/`
+    - 数据库存储相对路径，API 返回完整 URL（通过 `BASE_URL` 配置）
 
 ## 环境要求
 
-- Python 3.11+
-- Node.js 18+
+- **Python** 3.11+
+- **Node.js** 20+
+- **pnpm** 8+ （推荐使用 pnpm 作为包管理器）
 - 浏览器支持 ES6+ 和 WebSocket
+
+### 安装 pnpm
+
+```bash
+npm install -g pnpm
+```
+
+### 版本约束说明
+
+项目在 `frontend/package.json` 中配置了版本约束：
+
+```json
+{
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
+```
+
+- `engines` 字段：声明项目对 Node.js 和 pnpm 的最低版本要求
+- `packageManager` 字段：指定推荐的包管理器版本（Corepack 自动启用）
 
 ## 启动命令
 
@@ -283,6 +396,9 @@ http://localhost:5173/admin?user_id=a1
 # 后端
 cd backend && python main.py
 
-# 前端
-cd frontend && npm run dev
+# 前端（推荐使用 pnpm）
+cd frontend && pnpm install && pnpm dev
+
+# 或使用 npm（不推荐）
+cd frontend && npm install && npm run dev
 ```

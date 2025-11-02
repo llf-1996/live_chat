@@ -72,6 +72,9 @@ import { useChatStore } from '../stores/chat'
 const chatStore = useChatStore()
 const searchKeyword = ref('')
 
+// 定义事件
+const emit = defineEmits(['conversation-selected'])
+
 // 从会话列表中提取商户（买家只看到与自己有会话的商户）
 const merchants = computed(() => {
   return chatStore.conversations
@@ -131,6 +134,8 @@ async function handleMerchantClick(merchant) {
 
   if (conversation) {
     await chatStore.selectConversation(conversation)
+    // 触发事件，通知父组件会话已选中
+    emit('conversation-selected')
   }
 }
 </script>
@@ -271,5 +276,65 @@ async function handleMerchantClick(merchant) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ==================== 响应式媒体查询 ==================== */
+
+/* 平板端 (768px-1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .list-header {
+    padding: 12px 14px;
+  }
+  
+  .search-box {
+    padding: 10px 14px;
+  }
+  
+  .merchant-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+}
+
+/* 手机端 (<768px) */
+@media (max-width: 767px) {
+  .list-header {
+    padding: 12px 16px;
+  }
+  
+  .list-title {
+    font-size: 15px;
+  }
+  
+  .search-box {
+    padding: 10px 16px;
+  }
+  
+  .list-container {
+    padding: 6px 0;
+  }
+  
+  .merchant-item {
+    padding: 12px 16px;
+    gap: 10px;
+    margin: 0 8px 6px 8px;
+  }
+  
+  .merchant-name {
+    font-size: 13px;
+  }
+  
+  .time {
+    font-size: 11px;
+  }
+  
+  .last-message {
+    font-size: 12px;
+  }
+  
+  .online-status {
+    width: 10px;
+    height: 10px;
+  }
 }
 </style>

@@ -517,4 +517,117 @@ async function handleDelete(reply) {
   border-top: 1px solid #e4e7ed;
   justify-content: flex-end;
 }
+
+/* ==================== 响应式媒体查询 ==================== */
+
+/* 平板端 (768px-1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .order-header {
+    padding: 12px 14px;
+  }
+  
+  .order-title {
+    font-size: 15px;
+  }
+  
+  .order-content {
+    padding: 14px;
+  }
+  
+  .merchant-name-section {
+    font-size: 17px;
+  }
+  
+  .merchant-stats {
+    gap: 20px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+}
+
+/* 手机端 (<768px) */
+@media (max-width: 767px) {
+  .order-header {
+    padding: 12px 16px;
+  }
+  
+  .order-title {
+    font-size: 14px;
+  }
+  
+  .order-content {
+    padding: 16px;
+  }
+  
+  /* 订单列表 */
+  .order-item {
+    padding: 12px;
+  }
+  
+  .order-name {
+    font-size: 13px;
+  }
+  
+  .order-price {
+    font-size: 13px;
+  }
+  
+  .order-status {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  
+  .order-time {
+    font-size: 11px;
+  }
+  
+  .send-order-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  /* 商家信息 */
+  .merchant-name-section {
+    font-size: 16px;
+  }
+  
+  .merchant-desc {
+    font-size: 13px;
+  }
+  
+  .merchant-stats {
+    gap: 16px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+  }
+  
+  /* 快捷消息 - 单列显示 */
+  .quick-reply-list {
+    gap: 10px;
+  }
+  
+  .quick-reply-item {
+    width: 100%;
+  }
+  
+  .reply-main {
+    padding: 10px;
+  }
+  
+  .reply-content {
+    font-size: 13px;
+  }
+  
+  .reply-actions {
+    padding: 6px 10px;
+  }
+}
 </style>

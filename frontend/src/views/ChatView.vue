@@ -13,7 +13,7 @@
     <div v-else class="chat-container">
       <!-- 顶部：个人信息栏（横跨整行） -->
       <div class="user-header" :class="'user-header-' + chatStore.currentUser.role">
-        <el-avatar :size="50" :src="chatStore.currentUser.avatar || '/avatars/default.png'">
+        <el-avatar :size="isMobile ? 40 : 50" :src="chatStore.currentUser.avatar || '/avatars/default.png'">
           {{ chatStore.currentUser.username?.charAt(0) }}
         </el-avatar>
         <div class="user-info">
@@ -26,8 +26,50 @@
         </div>
       </div>
 
-      <!-- 下方：左中右三栏 -->
-      <div class="main-content">
+      <!-- 手机端：单栏显示 + 底部导航 -->
+      <div v-if="isMobile" class="mobile-layout">
+        <div class="mobile-content">
+          <!-- 左侧：根据角色显示不同列表 -->
+          <MerchantList 
+            v-if="chatStore.currentUser.role === 'buyer'" 
+            v-show="activePanel === 'list'" 
+            class="merchant-list"
+            @conversation-selected="handleConversationSelected"
+          />
+          <BuyerList 
+            v-else-if="chatStore.currentUser.role === 'merchant'" 
+            v-show="activePanel === 'list'" 
+            class="merchant-list"
+            @conversation-selected="handleConversationSelected"
+          />
+
+          <!-- 中间：聊天窗口（手机端的"更多"功能已集成到聊天窗口的输入框工具栏） -->
+          <ChatWindow ref="chatWindowRef" v-show="activePanel === 'chat'" class="chat-window" />
+        </div>
+
+        <!-- 底部导航栏（手机端只显示会话和聊天） -->
+        <div class="mobile-nav">
+          <div 
+            class="nav-item" 
+            :class="{ active: activePanel === 'list' }"
+            @click="activePanel = 'list'"
+          >
+            <el-icon :size="24"><ChatDotRound /></el-icon>
+            <span>会话</span>
+          </div>
+          <div 
+            class="nav-item" 
+            :class="{ active: activePanel === 'chat' }"
+            @click="activePanel = 'chat'"
+          >
+            <el-icon :size="24"><ChatLineRound /></el-icon>
+            <span>聊天</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 桌面/平板端：三栏布局 -->
+      <div v-else class="main-content">
         <!-- 左侧：根据角色显示不同列表 -->
         <!-- 买家：显示商户列表 -->
         <MerchantList v-if="chatStore.currentUser.role === 'buyer'" class="merchant-list" />
@@ -51,13 +93,41 @@ import MerchantList from '../components/MerchantList.vue'
 import BuyerList from '../components/BuyerList.vue'
 import ChatWindow from '../components/ChatWindow.vue'
 import OrderPanel from '../components/OrderPanel.vue'
+import { ChatDotRound, ChatLineRound } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()
 const chatWindowRef = ref(null)
 
+// 响应式状态管理
+const isMobile = ref(window.innerWidth < 768)
+// 手机端：如果没有 target 参数，默认显示会话列表；否则显示聊天窗口
+const activePanel = ref(
+  isMobile.value && !chatStore.targetUserId ? 'list' : 'chat'
+) // 'list' | 'chat' | 'panel'
+
+// 监听窗口大小变化
+const handleResize = () => {
+  const wasMobile = isMobile.value
+  isMobile.value = window.innerWidth < 768
+  
+  // 从桌面切换到手机时，根据是否有当前会话决定显示哪个面板
+  if (!wasMobile && isMobile.value) {
+    activePanel.value = chatStore.currentConversation ? 'chat' : 'list'
+  }
+}
+
+window.addEventListener('resize', handleResize)
+
 function handleUseQuickReply(content) {
   if (chatWindowRef.value) {
     chatWindowRef.value.setInputMessage(content)
+  }
+}
+
+// 手机端：会话选中后自动切换到聊天窗口
+function handleConversationSelected() {
+  if (isMobile.value) {
+    activePanel.value = 'chat'
   }
 }
 
@@ -108,17 +178,16 @@ onMounted(async () => {
 onUnmounted(() => {
   // 断开WebSocket连接
   chatStore.disconnectWebSocket()
+  // 清理事件监听器
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <style scoped>
 .chat-view {
-  width: 100%;
+  width: 100vw;
   height: 100vh;
   background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* 无权访问提示页面 */
@@ -129,17 +198,17 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   padding: 40px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-/* 聊天容器 */
+/* 聊天容器 - 全屏显示 */
 .chat-container {
-  width: 1400px;
-  height: 900px;
-  max-width: 95vw;
-  max-height: 95vh;
+  width: 100vw;
+  height: 100vh;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -216,6 +285,111 @@ onUnmounted(() => {
 .order-panel {
   width: 320px;
   flex-shrink: 0;
+}
+
+/* 手机端布局 */
+.mobile-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.mobile-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-content > * {
+  flex: 1;
+  overflow: auto;
+}
+
+/* 底部导航栏 */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  height: 60px;
+  background: white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  color: #909399;
+  transition: all 0.3s;
+  padding: 8px 0;
+}
+
+.nav-item span {
+  font-size: 12px;
+}
+
+.nav-item.active {
+  color: #5B8FF9;
+}
+
+.nav-item:active {
+  background-color: #f5f5f5;
+}
+
+/* 手机端时，内容区留出底部导航空间 */
+.mobile-layout .mobile-content {
+  padding-bottom: 60px;
+}
+
+/* ==================== 响应式媒体查询 ==================== */
+
+/* 平板端 (768px-1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .merchant-list {
+    width: 240px;
+  }
+  
+  .order-panel {
+    width: 280px;
+  }
+  
+  .user-header {
+    padding: 12px 16px;
+  }
+  
+  .user-name {
+    font-size: 16px;
+  }
+}
+
+/* 手机端 (<768px) */
+@media (max-width: 767px) {
+  .user-header {
+    padding: 12px 16px;
+  }
+  
+  .user-name {
+    font-size: 16px;
+  }
+  
+  .merchant-list,
+  .chat-window,
+  .order-panel {
+    width: 100vw;
+  }
 }
 </style>
 

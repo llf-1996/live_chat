@@ -73,6 +73,9 @@ import { useChatStore } from '../stores/chat'
 const chatStore = useChatStore()
 const searchKeyword = ref('')
 
+// 定义事件
+const emit = defineEmits(['conversation-selected'])
+
 // 过滤后的会话列表（根据搜索关键词）
 const filteredConversations = computed(() => {
   if (!searchKeyword.value.trim()) {
@@ -90,6 +93,8 @@ function handleSearch() {
 
 function selectConversation(conversation) {
   chatStore.selectConversation(conversation)
+  // 触发事件，通知父组件会话已选中
+  emit('conversation-selected')
 }
 
 function formatTime(time) {
@@ -236,6 +241,66 @@ function formatTime(time) {
   color: #bfbfbf;
   flex-shrink: 0;
   align-self: flex-start;
+}
+
+/* ==================== 响应式媒体查询 ==================== */
+
+/* 平板端 (768px-1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .list-header {
+    padding: 12px 14px;
+  }
+  
+  .search-box {
+    padding: 10px 14px;
+  }
+  
+  .conversation-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+}
+
+/* 手机端 (<768px) */
+@media (max-width: 767px) {
+  .list-header {
+    padding: 12px 16px;
+  }
+  
+  .list-title {
+    font-size: 15px;
+  }
+  
+  .search-box {
+    padding: 10px 16px;
+  }
+  
+  .list-container {
+    padding: 6px 0;
+  }
+  
+  .conversation-item {
+    padding: 12px 16px;
+    gap: 10px;
+    margin: 0 8px 6px 8px;
+  }
+  
+  .conversation-name {
+    font-size: 13px;
+  }
+  
+  .last-message {
+    font-size: 11px;
+  }
+  
+  .conversation-time {
+    font-size: 11px;
+  }
+  
+  .online-status {
+    width: 10px;
+    height: 10px;
+  }
 }
 </style>
 
