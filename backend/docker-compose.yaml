@@ -1,0 +1,35 @@
+services:
+  backend-live-chat:
+    image: python:3.11-slim-bullseye
+    volumes:
+     - .:/app
+     - ./deploy/backend/:/var/log/backend/
+     #- /var/log/live_chat/backend/:/var/log/backend/
+    working_dir: /app
+    command: sh ./deploy/run_backend.sh
+    restart: unless-stopped
+    ports:
+     - "11075:11010"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+      nproc:
+        soft: 4096
+        hard: 4096
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "30"

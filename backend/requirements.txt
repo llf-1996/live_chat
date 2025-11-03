@@ -1,13 +1,29 @@
 # pip install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
+
+# Web 框架
 fastapi==0.120.4
 uvicorn==0.38.0
+gunicorn==22.0.0
+
+# 数据库
 sqlalchemy==2.0.44
 aiosqlite==0.21.0
+alembic==1.12.1
+
+# 数据验证
 pydantic==2.12.3
+
+# 文件上传
 python-multipart==0.0.20
+Pillow==9.5.0
+
+# WebSocket
 websockets==15.0.1
+
+# 认证
 python-jose==3.5.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
+
+# 环境变量
 python-dotenv==1.2.1
-Pillow==9.5.0

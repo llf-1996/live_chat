@@ -11,7 +11,7 @@ import sys
 import asyncio
 from getpass import getpass
 from sqlalchemy import select
-from app.database import async_session_maker, init_db
+from app.database import async_session_maker
 from app.models import User, UserRole
 from app.auth import hash_password
 
@@ -84,10 +84,8 @@ async def main():
     print("=" * 60)
     print()
     
-    # 初始化数据库
-    print("正在初始化数据库...")
-    await init_db()
-    print("✓ 数据库初始化完成\n")
+    # 注意：数据库表结构由 Alembic 管理（alembic upgrade head）
+    # 这里只处理数据，不创建表结构
     
     # 获取用户ID、用户名和密码
     if len(sys.argv) >= 4:

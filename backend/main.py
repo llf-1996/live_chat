@@ -21,7 +21,7 @@ logging.basicConfig(
 # 加载环境变量
 load_dotenv()
 
-from app.database import init_db, get_db
+from app.database import get_db
 from app.routers import users, conversations, messages, quick_replies, upload, auth
 from app.websocket import manager
 from app.models import User, QuickReply, UserRole
@@ -31,7 +31,7 @@ from app.exceptions import (
     pydantic_validation_exception_handler,
     general_exception_handler,
     business_exception_handler,
-    BusinessException
+    BusinessException,
 )
 
 # 从环境变量读取配置
@@ -187,10 +187,10 @@ async def initialize_data():
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
-    print("🚀 初始化数据库...")
-    await init_db()
+    print("🚀 初始化内置数据...")
+    # 注意：数据库表结构由 Alembic 管理，不再使用 init_db()
     await initialize_data()
-    print("✅ 数据库初始化完成")
+    print("✅ 内置数据初始化完成")
 
     # 创建媒体文件目录
     Path(MEDIA_DIR).mkdir(parents=True, exist_ok=True)
