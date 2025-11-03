@@ -60,7 +60,7 @@ async def initialize_data():
             User(
                 id="a2",
                 username="admin",
-                avatar="/media/avatars/admin.png",
+                avatar="/api/media/avatars/admin.png",
                 role=UserRole.ADMIN,
                 description="管理员",
                 password_hash=hash_password("admin123"),
@@ -69,7 +69,7 @@ async def initialize_data():
             User(
                 id="p1",
                 username="官方客服",
-                avatar="/media/avatars/service.png",
+                avatar="/api/media/avatars/service.png",
                 role=UserRole.MERCHANT,
                 description="官方客服"
             ),
@@ -77,14 +77,14 @@ async def initialize_data():
             User(
                 id="b1",
                 username="保安堂药房",
-                avatar="/media/avatars/buyer1.png",
+                avatar="/api/media/avatars/buyer1.png",
                 description='一家深植于社区的传统药房，秉承"保安康，济天下"的经营理念。除提供各类中西成药外，还提供代客煎药、健康咨询等贴心服务，是街坊邻里信赖的健康守护站。',
                 role=UserRole.BUYER.value
             ),
             User(
                 id="b2",
                 username="异世界药局",
-                avatar="/media/avatars/buyer2.png",
+                avatar="/api/media/avatars/buyer2.png",
                 role=UserRole.BUYER.value,
                 description="一家以创新和客户体验为核心的现代连锁药局。不仅销售药品，还提供个性化的健康解决方案、先进的医疗器械租赁及全程用药指导，旨在成为顾客身边的健康管理伙伴。",
             ),
@@ -92,21 +92,21 @@ async def initialize_data():
             User(
                 id="m1",
                 username="保和堂医药集团",
-                avatar="/media/avatars/merchant1.png",
+                avatar="/api/media/avatars/merchant1.png",
                 role=UserRole.MERCHANT,
                 description="一家融合了百年传承技艺与现代管理体系的大型医药集团。业务涵盖经典名方的研发、中药饮片生产及现代化中成药制造，致力于让传统智慧为当代健康服务。",
             ),
             User(
                 id="m2",
                 username="阿纳斯蒂制药",
-                avatar="/media/avatars/merchant2.png",
+                avatar="/api/media/avatars/merchant2.png",
                 role=UserRole.MERCHANT,
                 description="一家专注于神经科学领域前沿研究的创新型药企，以开发调节情绪与认知功能的特种药物而闻名。其产品线基于精准医疗理念，致力于为复杂的神经系统疾病提供突破性治疗方案。"
             ),
             User(
                 id="m3",
                 username="梅迪西斯制药",
-                avatar="/media/avatars/user1.png",
+                avatar="/api/media/avatars/user1.png",
                 role=UserRole.MERCHANT,
                 description="源自古老的医药世家，将传统配方与现代尖端制药技术相结合。该药厂尤其擅长开发天然植物提取物制成的特效药与高品质保健品，在业界享有崇高声誉。"
             )
@@ -227,7 +227,10 @@ app = FastAPI(
     title=APP_TITLE,
     description=APP_DESCRIPTION,
     version=APP_VERSION,
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/api/docs",      # Swagger UI 文档路径
+    redoc_url="/api/redoc",    # ReDoc 文档路径
+    openapi_url="/api/openapi.json"  # OpenAPI schema 路径
 )
 
 # 配置CORS
@@ -250,7 +253,7 @@ app.add_exception_handler(BusinessException, business_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
 # 挂载静态文件（媒体文件目录）
-app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
+app.mount("/api/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 # 注册路由
 app.include_router(auth.router)
@@ -262,7 +265,7 @@ app.include_router(upload.router)
 
 
 # WebSocket端点
-@app.websocket("/ws/{user_id}")
+@app.websocket("/api/ws/{user_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
     user_id: str
@@ -345,17 +348,17 @@ async def websocket_endpoint(
         print(f"用户 {user_id} 断开连接")
 
 
-@app.get("/")
+@app.get("/api/")
 async def root():
     """根路径"""
     return {
         "message": "在线客服系统 API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/api/docs"
     }
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     """健康检查"""
     return {"status": "healthy"}

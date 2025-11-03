@@ -83,7 +83,7 @@ async def _save_uploaded_file(file: UploadFile, allowed_types: set) -> Tuple[str
         f.write(contents)
 
     # 返回完整 URL
-    relative_path = f"/media/uploads/{year}/{month}/{day}/{filename}"
+    relative_path = f"/api/media/uploads/{year}/{month}/{day}/{filename}"
     full_url = build_full_url(relative_path)
     return full_url, file.filename
 

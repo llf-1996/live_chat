@@ -1,24 +1,68 @@
 # 后端技术文档
 
-在线客服系统后端，基于 FastAPI 构建的异步 Web 服务。
+基于 FastAPI + MySQL + WebSocket 的异步后端服务。
 
 ## 🛠️ 技术栈
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **Python** | 3.11+ | 编程语言 |
-| **FastAPI** | 0.120+ | Web 框架 |
-| **MySQL** | 5.7+ / 8.0+ | 数据库 |
-| **SQLAlchemy** | 2.0+ | 异步 ORM |
-| **Alembic** | 1.12+ | 数据库迁移 |
-| **Uvicorn** | 0.38+ | ASGI 服务器 |
-| **python-jose** | 3.3+ | JWT 认证 |
-| **passlib** | 1.7+ | 密码哈希 |
+Python 3.11+ | FastAPI | MySQL + aiomysql | SQLAlchemy (异步) | Alembic | Uvicorn | JWT
 
-## 📋 环境要求
+## ⚙️ 环境变量（16项必需）
 
-- **Python 3.11+**
-- **MySQL 5.7+** 或 **MySQL 8.0+**
+**⚠️ 所有配置必需，无默认值！使用 `is None` 验证（`"False"`, `"0"`, `""` 都是有效值）**
+
+```env
+# 数据库（2项）
+DATABASE_URL=mysql+aiomysql://user:pass@host:port/db
+DEBUG_SQL=False
+
+# JWT认证（3项）
+JWT_SECRET_KEY=your-secret-key-min-64-chars
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_DAYS=7
+
+# 服务器（5项）
+HOST=0.0.0.0
+PORT=11075
+RELOAD=True              # 开发: True, 生产: False
+DEBUG=True               # 开发: True, 生产: False
+BASE_URL=http://localhost:11075
+
+# CORS（1项）
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# 文件上传（2项）
+MEDIA_DIR=media
+MAX_FILE_SIZE=10485760   # 10MB
+
+# 应用信息（3项）
+APP_TITLE=在线客服系统
+APP_DESCRIPTION=基于FastAPI和WebSocket的实时在线客服系统
+APP_VERSION=1.0.0
+```
+
+## 🚀 快速开始
+
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env，配置所有16项
+
+# 3. 初始化数据库
+alembic upgrade head
+
+# 4. 创建管理员
+python create_admin.py
+
+# 5. 启动服务
+python main.py
+```
+
+访问：
+- API 文档: http://localhost:11075/api/docs
+- 健康检查: http://localhost:11075/api/health
 
 ## 📁 目录结构
 
@@ -26,323 +70,191 @@
 backend/
 ├── app/
 │   ├── routers/          # API 路由
+│   │   ├── auth.py       # 认证
+│   │   ├── users.py      # 用户管理
+│   │   ├── conversations.py  # 会话
+│   │   ├── messages.py   # 消息
+│   │   ├── quick_replies.py  # 快捷回复
+│   │   └── upload.py     # 文件上传
 │   ├── models.py         # 数据库模型
 │   ├── schemas.py        # Pydantic 模型
 │   ├── database.py       # 数据库配置
-│   ├── auth.py           # JWT 认证
+│   ├── auth.py           # JWT 工具
 │   ├── websocket.py      # WebSocket 管理
 │   └── exceptions.py     # 异常处理
 ├── alembic/              # 数据库迁移
+├── media/                # 静态文件
 ├── main.py               # 应用入口
-├── requirements.txt      # 依赖
 └── .env                  # 环境变量
 ```
 
-## ⚙️ 环境变量配置
+## 📊 数据库
 
-### ⚠️ 重要
+### 模型
 
-**所有配置必需，无默认值！配置缺失时抛出 `ValueError`。**
+- **User**: 用户（买家、商户、客服、管理员）
+- **Conversation**: 会话
+- **Message**: 消息
+- **QuickReply**: 快捷回复
 
-使用 `is None` 判断（不用 `if not value`），因为 `"False"`, `"0"`, `""` 都是有效值。
-
-```python
-# ✅ 正确
-value = os.getenv("DATABASE_URL")
-if value is None:
-    raise ValueError("DATABASE_URL 环境变量未设置")
-```
-
-### 配置项（16项）
-
-#### 数据库
-- **DATABASE_URL**: `mysql+aiomysql://用户:密码@主机:端口/数据库`
-- **DEBUG_SQL**: `True`/`False`（生产环境 False）
-
-#### JWT 认证
-- **JWT_SECRET_KEY**: 加密密钥（生产环境用 `secrets.token_urlsafe(64)` 生成）
-- **JWT_ALGORITHM**: `HS256`
-- **JWT_ACCESS_TOKEN_EXPIRE_DAYS**: `7`
-
-#### 服务器
-- **HOST**: `0.0.0.0`（监听所有）或 `127.0.0.1`（仅本地）
-- **PORT**: `11075`
-- **RELOAD**: `True`（开发，代码修改自动重载）/`False`（生产，必须！）
-- **DEBUG**: `True`（开发）/`False`（生产，必须！）
-- **BASE_URL**: `http://localhost:11075` 或 `https://api.yourdomain.com`
-
-#### CORS
-- **CORS_ORIGINS**: `http://localhost:5173,http://localhost:3000`（逗号分隔，无空格）
-
-#### 文件上传
-- **MEDIA_DIR**: `media`
-- **MAX_FILE_SIZE**: `10485760`（10MB = 10485760 字节）
-
-#### 应用信息
-- **APP_TITLE**: `在线客服系统`
-- **APP_DESCRIPTION**: `基于FastAPI和WebSocket的实时在线客服系统`
-- **APP_VERSION**: `1.0.0`
-
-### 配置示例
-
-**开发环境（.env）**
-```env
-DATABASE_URL=mysql+aiomysql://root:password@localhost:3306/chat
-DEBUG_SQL=False
-JWT_SECRET_KEY=dev-secret-key-please-change
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_DAYS=7
-HOST=0.0.0.0
-PORT=11075
-RELOAD=True
-DEBUG=True
-BASE_URL=http://localhost:11075
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-MEDIA_DIR=media
-MAX_FILE_SIZE=10485760
-APP_TITLE=在线客服系统
-APP_DESCRIPTION=基于FastAPI和WebSocket的实时在线客服系统
-APP_VERSION=1.0.0
-```
-
-**生产环境：** `RELOAD=False`, `DEBUG=False`, `DEBUG_SQL=False`, `JWT_SECRET_KEY` 用强密钥
-
-## 🚀 启动方式
-
-### 1. 安装依赖
-```bash
-pip install -r requirements.txt
-```
-
-### 2. 初始化数据库
-```bash
-# 生成迁移
-alembic revision --autogenerate -m "init"
-# 应用迁移
-alembic upgrade head
-```
-
-### 3. 创建管理员
-```bash
-python create_admin.py
-```
-
-### 4. 启动服务
-```bash
-python main.py
-# 访问: http://localhost:11075
-```
-
-## 📡 API 规范
-
-### RESTful 风格
-
-- 资源名称用复数：`/users/`, `/conversations/`, `/messages/`
-- HTTP 方法：GET（查询）、POST（创建）、PUT（更新）、DELETE（删除）
-
-### 响应格式
-
-**列表接口：**
-```json
-{
-  "count": 100,
-  "results": [...]
-}
-```
-
-**单个资源：** 直接返回对象  
-**错误：** `{"detail": "错误信息"}`
-
-### 分页参数
-
-- `page`: 页码（从1开始）
-- `page_size`: 每页记录数（默认20）
-- 计算 skip: `skip = (page - 1) * page_size`
-
-## 🗄️ 数据库设计
-
-### 核心模型
-
-**User（用户表）**
-- `id`: String(50)，格式 `{角色首字母}{数字}`（b1, m1, a1, p1）
-- `username`: 用户名
-- `role`: 角色（buyer/merchant/admin/service）
-- `password_hash`: 密码哈希（可选）
-
-**Conversation（会话表）**
-- `id`: String(50)
-- `customer_id`: 客户ID
-- `merchant_id`: 商户ID
-- `created_at`: Unix 时间戳
-
-**Message（消息表）**
-- `id`: String(50)
-- `conversation_id`: 会话ID
-- `sender_id`: 发送者ID
-- `content`: 消息内容
-- `message_type`: 类型（text/image/file）
-- `created_at`: Unix 时间戳
-
-**QuickReply（快捷回复表）**
-- `id`: String(50)
-- `user_id`: 用户ID
-- `content`: 回复内容
-
-### 关系
-- User ←→ Conversation: customer/merchant 关系
-- Conversation ←→ Message: 一对多
-- User ←→ Message: sender 关系
-
-## 📊 数据库迁移管理
-
-### 常用命令
+### 迁移
 
 ```bash
-# 生成迁移文件（自动检测模型变化）
-alembic revision --autogenerate -m "描述变更"
+# 创建迁移
+alembic revision --autogenerate -m "描述"
 
 # 应用迁移
 alembic upgrade head
 
-# 回退一个版本
+# 回滚
 alembic downgrade -1
-
-# 查看历史
-alembic history
-
-# 查看当前版本
-alembic current
 ```
 
-### 工作流程
+## 🔌 API 路径规范
 
-1. **修改模型** (`app/models.py`)
-2. **生成迁移**: `alembic revision --autogenerate -m "add field"`
-3. **检查迁移文件** (`alembic/versions/`)
-4. **应用迁移**: `alembic upgrade head`
-5. **更新 Pydantic schema**
+**所有接口在 `/api` 路径下：**
 
-### 生产环境
+- `/api/auth/` - 认证（登录、验证）
+- `/api/users/` - 用户管理
+- `/api/conversations/` - 会话管理
+- `/api/messages/` - 消息管理
+- `/api/quick-replies/` - 快捷回复
+- `/api/upload/` - 文件上传
+- `/api/ws/{user_id}` - WebSocket 连接
+- `/api/media/*` - 静态文件
 
-⚠️ **迁移前务必备份数据库！**
+## 🔐 认证流程
+
+```python
+# 1. 登录获取 token
+POST /api/auth/login
+{ "username": "admin", "password": "admin123" }
+→ { "access_token": "...", "user": {...} }
+
+# 2. 请求携带 token
+GET /api/users/
+Headers: { "Authorization": "Bearer {token}" }
+```
+
+## 🌐 生产部署
+
+### 1. Gunicorn 启动
 
 ```bash
-# 备份
-mysqldump -u用户 -p 数据库名 > backup.sql
-
-# 应用迁移
-alembic upgrade head
+gunicorn main:app \
+  --workers 4 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:11075 \
+  --daemon
 ```
 
-## 🔌 WebSocket 说明
+### 2. Nginx 配置
 
-### 连接管理
+```nginx
+# WebSocket 升级配置
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
 
-```python
-# WebSocket 连接: ws://localhost:11075/ws/{user_id}
-active_connections: Dict[str, WebSocket]  # user_id → WebSocket
-admin_users: Set[str]  # 管理员ID集合
-```
-
-### 消息格式
-
-```json
-{
-  "id": "msg_123",
-  "conversation_id": "conv_456",
-  "sender_id": "b1",
-  "content": "消息内容",
-  "message_type": "text",
-  "created_at": 1730000000
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+    
+    # ⚠️ 静态文件必须在 /api/ 之前
+    location /api/media/ {
+        alias /path/to/backend/media/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # API 接口（包括 WebSocket）
+    location /api/ {
+        proxy_pass http://127.0.0.1:11075;
+        
+        # WebSocket 支持
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        
+        # 传递客户端信息（必需）
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 超时设置
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        
+        # 缓冲设置（避免参数丢失）
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
 }
 ```
 
-### 推送规则
+**关键点：**
+- 静态文件由 Nginx 直接提供（性能提升 10-100 倍）
+- WebSocket 需要 HTTP/1.1 和 Upgrade 头
+- `proxy_pass` 末尾不加 `/`（保留完整路径）
+- 必须配置 `X-Forwarded-*` 头（传递客户端信息）
+- 关闭缓冲（`proxy_buffering off`）避免参数丢失
 
-1. 买家发送 → 推送给商户 + 所有在线管理员
-2. 商户发送 → 推送给买家 + 所有在线管理员
-3. 管理员只读，不能发送
+### 3. systemd 服务
 
-## 🛡️ 异常处理
+```bash
+# /etc/systemd/system/chat-backend.service
+[Unit]
+Description=Chat Backend
+After=network.target mysql.service
 
-### DEBUG 模式控制
+[Service]
+User=www-data
+WorkingDirectory=/path/to/backend
+ExecStart=/path/to/gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:11075
+Restart=always
 
-```python
-# DEBUG=True（开发环境）
-{
-  "detail": "服务器内部错误",
-  "error_type": "ValueError",
-  "error_message": "具体错误",
-  "traceback": [...]
-}
-
-# DEBUG=False（生产环境）
-{
-  "detail": "服务器内部错误，请稍后重试",
-  "error_type": "internal_error"
-}
+[Install]
+WantedBy=multi-user.target
 ```
-
-## 🔧 开发指南
-
-### 添加新API
-
-1. 在 `app/routers/` 创建路由文件
-2. 定义 Pydantic schema (`app/schemas.py`)
-3. 列表接口使用 `PaginatedResponse[T]`
-4. 在 `main.py` 注册路由
-
-### 修改数据库模型
-
-1. 修改 `app/models.py`
-2. 生成迁移: `alembic revision --autogenerate -m "描述"`
-3. 检查迁移文件
-4. 应用迁移: `alembic upgrade head`
-5. 更新 schema
-
-### 添加环境变量
-
-1. 在 `.env` 和 `.env.example` 添加配置
-2. 在代码中验证:
-   ```python
-   VALUE = os.getenv("NEW_VAR")
-   if VALUE is None:
-       raise ValueError("NEW_VAR 环境变量未设置")
-   ```
 
 ## 🐛 常见问题
 
+**Q: 启动失败 `ValueError: XXX 环境变量未设置`？**  
+检查 `.env` 文件，确保所有 16 项配置都已设置。
+
 **Q: MySQL 连接失败？**  
-检查：MySQL 运行、数据库已创建、用户权限、防火墙、配置正确
+检查：MySQL 服务运行、DATABASE_URL 格式、用户权限、防火墙。
 
-**Q: Event loop closed 错误？**  
-应用关闭时添加: `await engine.dispose()`
-
-**Q: 多进程端口冲突？**  
-原因：后台启动多个进程导致端口被占用  
-解决：检查并清理占用端口的进程
+**Q: 多个进程端口冲突？**  
+清理占用端口的进程：
 ```bash
-# 查看占用端口的进程
+# Windows
 netstat -ano | findstr :11075
-# 停止进程
-taskkill /F /PID <进程ID>
+taskkill /F /PID <PID>
+
+# Linux
+lsof -ti:11075 | xargs kill -9
 ```
 
-**Q: 环境变量未生效？**  
-1. 确认 `.env` 在 `backend` 目录
-2. 检查拼写
-3. 重启服务
-4. 检查系统环境变量
+**Q: WebSocket 502 Bad Gateway？**  
+检查 Nginx 配置中 `map $http_upgrade` 和 `proxy_set_header Upgrade`。
 
-**Q: 如何部署到生产？**
-1. `DEBUG=False`
-2. `DEBUG_SQL=False`
-3. `JWT_SECRET_KEY` 用强密钥
-4. 使用 Gunicorn:
-   ```bash
-   gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:11075
-   ```
+**Q: Nginx 代理后请求参数丢失？**  
+必须配置以下代理头：
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_buffering off;              # 避免大请求体丢失
+proxy_request_buffering off;      # 避免参数丢失
+```
+
+**Q: 静态文件 404？**  
+1. Nginx 配置中 `/api/media/` 必须在 `/api/` 之前
+2. 检查 `alias` 路径是否以 `/` 结尾
+3. 检查文件权限：`chmod -R 755 media`
 
 ## 📄 开源协议
 
-本项目采用 MIT 协议开源。
+MIT License

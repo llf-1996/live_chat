@@ -1,82 +1,39 @@
 # 前端技术文档
 
-在线客服系统前端，基于 Vue 3 构建的单页应用（SPA）。
+基于 Vue 3 + Vite + Element Plus 的单页应用（SPA）。
 
 ## 🛠️ 技术栈
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **Vue** | 3.4+ | 渐进式框架 |
-| **Vite** | 5.0+ | 构建工具 |
-| **Element Plus** | 2.5+ | UI 组件库 |
-| **Pinia** | 2.1+ | 状态管理 |
-| **Vue Router** | 4.2+ | 路由管理 |
-| **Axios** | 1.6+ | HTTP 客户端 |
+Vue 3 | Vite | Element Plus | Pinia | Vue Router | Axios | WebSocket
 
-## 📋 环境要求
+## ⚙️ 环境变量
 
-- **Node.js 20+**
-- **pnpm 8+**（推荐）
+**⚠️ 只配置服务器地址，不含路径！**
 
-## 📁 目录结构
-
-```
-frontend/
-├── src/
-│   ├── api/              # API 封装
-│   ├── components/       # 组件
-│   │   ├── admin/        # 管理后台组件
-│   │   ├── ChatWindow.vue
-│   │   └── MessageInput.vue
-│   ├── router/           # 路由配置
-│   ├── stores/           # Pinia 状态管理
-│   ├── views/            # 页面组件
-│   ├── App.vue           # 根组件
-│   └── main.js           # 应用入口
-├── .env                  # 环境变量
-└── vite.config.js        # Vite 配置
-```
-
-## ⚙️ 环境变量配置
-
-### ⚠️ 重要
-
-**必需配置，无默认值！** 配置缺失时抛出异常。
-
-```javascript
-// 使用 is None 验证
-const apiBaseUrl = env.VITE_API_BASE_URL
-if (!apiBaseUrl) {
-  throw new Error('VITE_API_BASE_URL 环境变量未设置')
-}
-```
-
-### 配置项
-
-- **VITE_API_BASE_URL**: 后端 API 地址（必需）
-- **VITE_WS_BASE_URL**: WebSocket 地址（必需）
-- **VITE_PORT**: 开发服务器端口（可选，默认 5173）
-
-### 配置示例
-
-**开发环境（.env）**
 ```env
-VITE_API_BASE_URL=http://localhost:11075
-VITE_WS_BASE_URL=ws://localhost:11075
+# 开发环境（.env）
+VITE_API_BASE_URL=http://localhost:11075    # 不含 /api
+VITE_WS_BASE_URL=ws://localhost:11075       # 不含 /api/ws
 VITE_PORT=5173
-```
 
-**生产环境（.env.production）**
-```env
+# 生产环境（.env.production）
 VITE_API_BASE_URL=https://api.yourdomain.com
 VITE_WS_BASE_URL=wss://api.yourdomain.com
 ```
 
-## 🚀 启动方式
+**原因：** 代码中已配置路径前缀
+- HTTP: `baseURL: '/api'` → 请求自动拼接为 `/api/auth/login`
+- WebSocket: 代码拼接 `/api/ws/{user_id}`
+
+## 🚀 快速开始
 
 ```bash
 # 安装依赖
 pnpm install
+
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env
 
 # 开发模式
 pnpm dev
@@ -90,239 +47,218 @@ pnpm preview
 
 访问：http://localhost:5173
 
+## 📁 目录结构
+
+```
+frontend/
+├── src/
+│   ├── api/
+│   │   └── chat.js          # API 封装（Axios）
+│   ├── components/
+│   │   ├── admin/           # 管理后台组件
+│   │   ├── ChatWindow.vue   # 聊天窗口
+│   │   ├── MessageInput.vue # 消息输入
+│   │   └── ...
+│   ├── router/
+│   │   └── index.js         # 路由配置
+│   ├── stores/
+│   │   ├── auth.js          # 认证状态
+│   │   └── chat.js          # 聊天状态（WebSocket）
+│   ├── views/
+│   │   ├── LoginView.vue    # 登录页
+│   │   ├── ChatView.vue     # 聊天页
+│   │   └── AdminView.vue    # 管理后台
+│   ├── App.vue              # 根组件
+│   ├── main.js              # 应用入口
+│   └── style.css            # 全局样式
+├── .env                     # 环境变量
+└── vite.config.js           # Vite 配置
+```
+
 ## 🗺️ 路由说明
 
-### 路由配置
+| 路径 | 组件 | 参数 | 用途 |
+|------|------|------|------|
+| `/login` | LoginView | - | 登录页（管理员） |
+| `/chat` | ChatView | `user_id`, `target_user_id`(可选) | 聊天页 |
+| `/admin` | AdminView | `user_id` | 管理后台（仅管理员） |
 
-- `/login` - 登录页面
-- `/chat?user_id={id}&target={target_id}` - 聊天页面
-- `/admin?user_id={id}` - 管理后台
+**参数说明：**
+- `user_id`: 当前用户 ID（必需）
+- `target_user_id`: 目标用户 ID（可选，自动创建会话）
 
-### URL 参数
+**示例：**
+```
+# 买家与商户对话
+/chat?user_id=b1&target_user_id=m1
 
-- `user_id`: 当前用户ID（必需）
-- `target`: 对话目标用户ID（可选，聊天页面）
+# 商户查看客户列表
+/chat?user_id=m1
 
-### 路由守卫
+# 管理员后台
+/admin?user_id=a1
+```
 
-- 检查 `user_id` 参数
-- 验证用户有效性
-- 管理员页面验证 `role === 'admin'`
-
-## 🧩 组件说明
-
-### 页面组件
-- **LoginView**: 登录页面
-- **ChatView**: 聊天页面（买家、商户、客服）
-- **AdminView**: 管理后台（仅管理员）
-
-### 业务组件
-- **ChatWindow**: 聊天窗口（消息列表、文件预览）
-- **MessageInput**: 消息输入框（文本、文件、快捷键）
-- **BuyerList**: 买家列表（商户视角）
-- **MerchantList**: 商户列表（买家视角）
-- **OrderPanel**: 订单/快捷回复面板
-
-### 管理后台组件
-- **AdminDashboard**: 数据总览
-- **UserManagement**: 用户管理
-- **ConversationManagement**: 会话管理
-- **MessageManagement**: 消息管理
-- **RealTimeMonitor**: 实时监控
-
-## 📦 状态管理
-
-### Pinia Stores
-
-**authStore** (`stores/auth.js`)
-- 当前用户信息（`currentUser`）
-- 用户列表（`users`）
-- 方法：`fetchUsers()`, `fetchCurrentUser()`
-
-**chatStore** (`stores/chat.js`)
-- 会话列表（`conversations`）
-- 消息列表（`messages`）
-- WebSocket 连接管理
-- 方法：`loadConversations()`, `sendMessage()`, `connectWebSocket()`
-
-## 🌐 API 调用
-
-### API 封装 (`api/chat.js`)
+## 🔌 API 调用
 
 ```javascript
-import axios from 'axios'
-
+// src/api/chat.js
 const api = axios.create({
-  baseURL: '/api',  // Vite 代理到后端
+  baseURL: '/api',  // 路径前缀
   timeout: 10000
 })
 
-// 示例
-export const getUsers = () => api.get('/users/')
-export const sendMessage = (data) => api.post('/messages/', data)
+// 自动添加 token
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('admin_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// 使用
+api.get('/users/')              // → /api/users/
+api.post('/messages/', data)    // → /api/messages/
 ```
 
-### Vite 代理配置
+## 📊 状态管理（Pinia）
+
+### auth.js - 认证状态
 
 ```javascript
-// vite.config.js
-proxy: {
-  '/api': {
-    target: VITE_API_BASE_URL,
-    changeOrigin: true
-  },
-  '/ws': {
-    target: VITE_WS_BASE_URL,
-    ws: true
-  }
-}
+const authStore = useAuthStore()
+
+// 登录
+await authStore.login('admin', 'password')
+
+// 获取当前用户
+await authStore.fetchCurrentUser()
+
+// 登出
+authStore.logout()
+```
+
+### chat.js - 聊天状态 + WebSocket
+
+```javascript
+const chatStore = useChatStore()
+
+// 设置当前用户
+chatStore.setCurrentUser(user)
+
+// WebSocket 连接
+chatStore.connectWebSocket()  // 自动连接到 /api/ws/{user_id}
+chatStore.disconnectWebSocket()
+
+// 发送消息
+await chatStore.sendMessage(conversationId, {
+  content: '你好',
+  content_type: 'text'
+})
+
+// 监听消息
+watch(() => chatStore.conversations, (newConversations) => {
+  // 处理新消息
+})
 ```
 
 ## 📱 响应式设计
 
-### 断点标准
+### 断点
 
-- 手机：<768px
-- 平板：768-1023px
-- 桌面：≥1024px
+- **手机**: < 768px
+- **平板**: 768px - 1023px
+- **桌面**: ≥ 1024px
 
-### 移动端优化
+### 布局
 
-**聊天页面 (ChatView)**
-- 单栏布局，通过 `activePanel` 切换视图
-- 底部导航：联系人、对话、订单
-- 全屏聊天窗口
+| 设备 | 布局 | 交互 |
+|------|------|------|
+| 手机 | 单栏 + `activePanel` 切换视图 | 触控友好（按钮≥44px） |
+| 平板/桌面 | 多栏并列 | 鼠标悬停、快捷键 |
 
-**管理后台 (AdminView)**
-- 折叠侧边栏（汉堡菜单）
-- 卡片式布局
-- 触控友好（按钮 ≥44×44px）
-
-### 媒体查询示例
+### CSS 示例
 
 ```css
-/* 桌面端 */
-.chat-container {
-  display: flex;
-}
-
 /* 手机端 */
 @media (max-width: 767px) {
   .chat-container {
-    display: block;
+    flex-direction: column;
   }
-  .sidebar {
+  .user-list {
     display: none;
   }
 }
-```
 
-## 🔌 WebSocket 集成
-
-### 连接管理
-
-```javascript
-// stores/chat.js
-connectWebSocket() {
-  const ws = new WebSocket(`${wsBaseUrl}/ws/${this.userId}`)
-  
-  ws.onmessage = (event) => {
-    const message = JSON.parse(event.data)
-    this.handleNewMessage(message)
+/* 桌面端 */
+@media (min-width: 1024px) {
+  .chat-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
   }
 }
 ```
 
-### 消息处理
-
-- 收到消息 → 更新 `messages` 列表
-- 更新会话 `updated_at` 和 `unread_count`
-- 当前对话 → 标记已读
-- 播放提示音（可选）
-
-## 🎨 样式规范
-
-### 全局样式 (`style.css`)
-
-- 统一字体、颜色
-- 滚动条样式
-- Element Plus 主题定制
-
-### 组件样式
-
-- 使用 `scoped` CSS
-- BEM 命名规范
-- 避免深层嵌套（≤3层）
-
-## 🔧 开发指南
-
-### 添加新页面
-
-1. 在 `views/` 创建组件
-2. 在 `router/index.js` 注册路由
-3. 添加路由守卫（如需要）
-
-### 添加新组件
-
-1. 在 `components/` 创建组件
-2. 使用 Composition API
-3. 添加 props 和 emits 类型定义
-
-### 添加新 API
-
-1. 在 `api/chat.js` 添加方法
-2. 在 store 中调用
-3. 处理错误和加载状态
-
-## 🚀 生产部署
+## 🌐 生产部署
 
 ### 构建
 
 ```bash
+# 使用生产环境变量构建
 pnpm build
+
 # 输出到 dist/
+# dist/
+#   ├── index.html
+#   ├── assets/
+#   │   ├── index-*.js
+#   │   └── index-*.css
+#   └── ...
 ```
 
-### 部署
+### Nginx 配置
 
-**静态文件服务器（Nginx）**
 ```nginx
 server {
-  listen 80;
-  server_name yourdomain.com;
-  root /var/www/live_chat/dist;
-  
-  location / {
-    try_files $uri $uri/ /index.html;
-  }
-  
-  location /api {
-    proxy_pass http://backend:11075;
-  }
+    listen 80;
+    server_name yourdomain.com;
+    root /path/to/frontend/dist;
+    index index.html;
+    
+    # SPA 路由
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # 静态资源缓存
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
 }
 ```
 
-**环境变量**
-- 创建 `.env.production`
-- 设置正确的 API 和 WebSocket 地址（HTTPS/WSS）
-
 ## 🐛 常见问题
 
-**Q: API 请求失败？**  
-检查：后端运行、端口正确、CORS 配置、网络连接
+**Q: 启动失败 `VITE_API_BASE_URL 环境变量未设置`？**  
+检查 `.env` 文件，确保配置了必需的环境变量。
+
+**Q: API 请求 404？**  
+检查：
+1. `.env` 中 `VITE_API_BASE_URL` 不应包含 `/api`（代码已配置）
+2. 后端服务运行在正确端口（11075）
+3. Vite 代理配置正确
 
 **Q: WebSocket 连接失败？**  
-检查：后端 WebSocket 服务、URL 格式（ws:// 或 wss://）、防火墙
+检查：
+1. `.env` 中 `VITE_WS_BASE_URL` 不应包含 `/api/ws`（代码会拼接）
+2. 后端 WebSocket 服务运行
+3. 用户 ID 有效（不是 null/undefined）
 
-**Q: 路由参数丢失？**  
-使用 `router.push({ query: { user_id } })` 保留参数
-
-**Q: 样式不生效？**  
-检查：scoped 属性、CSS 选择器优先级、Element Plus 主题覆盖
-
-**Q: 生产环境白屏？**  
-检查：.env.production 配置、控制台错误、路由 mode、资源路径
+**Q: 打包后路由 404？**  
+确保 Nginx 配置了 `try_files $uri $uri/ /index.html`（SPA 路由支持）。
 
 ## 📄 开源协议
 
-本项目采用 MIT 协议开源。
+MIT License

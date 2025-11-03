@@ -32,12 +32,12 @@ python generate_avatars.py
 
 ```python
 # 后端 API 返回
-avatar_url = "/media/avatars/admin.png"
+avatar_url = "/api/media/avatars/admin.png"
 ```
 
 ```javascript
 // 前端使用
-<img :src="user.avatar || '/media/avatars/admin.png'" />
+<img :src="user.avatar || '/api/media/avatars/admin.png'" />
 ```
 
 ## 注意事项

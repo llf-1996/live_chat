@@ -31,74 +31,33 @@
 
 ## 📋 环境要求
 
-- **Python 3.11+**
-- **Node.js 20+** 和 **pnpm 8+**
-- **MySQL 5.7+** 或 **MySQL 8.0+**
+Python 3.11+ | Node.js 20+ | pnpm 8+ | MySQL 5.7+/8.0+
 
 ## 🚀 快速开始
 
-### 1. 克隆项目
-
 ```bash
+# 1. 克隆项目
 git clone <repository-url>
 cd live_chat
-```
 
-### 2. 配置后端
-
-```bash
+# 2. 后端配置
 cd backend
-
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env，配置数据库等（所有15个配置项都必需）
-# DATABASE_URL=mysql+aiomysql://用户:密码@主机:端口/数据库
-# JWT_SECRET_KEY=你的密钥
-# ...其他配置
-
-# 安装依赖
+cp .env.example .env           # 编辑配置（16项必需）
 pip install -r requirements.txt
-
-# 初始化数据库
 alembic upgrade head
+python create_admin.py         # 创建管理员
+python main.py                 # 启动后端
 
-# 创建管理员
-python create_admin.py
-```
-
-### 3. 配置前端
-
-```bash
+# 3. 前端配置（新终端）
 cd frontend
-
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env（必需配置）
-# VITE_API_BASE_URL=http://localhost:11075
-# VITE_WS_BASE_URL=ws://localhost:11075
-
-# 安装依赖
+cp .env.example .env           # 编辑配置
 pnpm install
+pnpm dev                       # 启动前端
 ```
 
-### 4. 启动服务
-
-```bash
-# 后端（新终端）
-cd backend
-python main.py
-
-# 前端（新终端）
-cd frontend
-pnpm dev
-```
-
-### 5. 访问系统
-
-- **前端**: http://localhost:5173
-- **API 文档**: http://localhost:11075/docs
+**访问：**
+- 前端: http://localhost:5173
+- API 文档: http://localhost:11075/api/docs
 
 ## 📖 使用教程
 
@@ -106,7 +65,7 @@ pnpm dev
 
 **登录页面：** http://localhost:5173/login
 
-**聊天页面：** http://localhost:5173/chat?user_id={用户ID}&target={对话对象ID}
+**聊天页面：** http://localhost:5173/chat?user_id={用户ID}&target_user_id={对话对象ID}
 
 **管理后台：** http://localhost:5173/admin?user_id={管理员ID}
 
@@ -123,7 +82,7 @@ pnpm dev
 
 **1. 买家与商户对话**
 ```
-http://localhost:5173/chat?user_id=b1&target=m1
+http://localhost:5173/chat?user_id=b1&target_user_id=m1
 ```
 
 **2. 商户查看客户列表**

@@ -30,17 +30,11 @@ export default defineConfig(({ mode }) => {
     server: {
       port,
       proxy: {
+        // 统一代理 /api 路径（包括 WebSocket 和静态文件）
         '/api': {
           target: apiBaseUrl,
-          changeOrigin: true
-        },
-        '/ws': {
-          target: wsBaseUrl,
-          ws: true
-        },
-        '/media': {
-          target: apiBaseUrl,
-          changeOrigin: true
+          changeOrigin: true,
+          ws: true  // 支持 WebSocket（/api/ws）
         }
       }
     }
