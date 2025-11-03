@@ -12,6 +12,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import logging
 
+from app.auth import hash_password
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +61,7 @@ async def initialize_data():
                 avatar="/media/avatars/admin.png",
                 role=UserRole.ADMIN,
                 description="管理员",
+                password_hash=hash_password("admin123"),
             ),
             # 官方客服(固定添加)
             User(

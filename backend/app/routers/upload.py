@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pathlib import Path
+from typing import Tuple
 import os
 import time
 from datetime import datetime
@@ -31,7 +32,7 @@ ALLOWED_FILE_TYPES = {
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", "10485760"))
 
 
-async def _save_uploaded_file(file: UploadFile, allowed_types: set) -> tuple[str, str]:
+async def _save_uploaded_file(file: UploadFile, allowed_types: set) -> Tuple[str, str]:
     """
     通用文件上传处理函数
     

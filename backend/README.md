@@ -8,7 +8,7 @@
 |------|------|------|
 | **Python** | 3.11+ | 编程语言 |
 | **FastAPI** | 0.120+ | Web 框架 |
-| **SQLite** | - | 数据库（开发环境）|
+| **MySQL** | 5.7+ / 8.0+ | 数据库 |
 | **SQLAlchemy** | 2.0+ | 异步 ORM |
 | **Alembic** | 1.12+ | 数据库迁移 |
 | **Uvicorn** | 0.38+ | ASGI 服务器 |
@@ -21,7 +21,7 @@
 
 - **Python 3.11+**
 - **pip** 或 **pip3**
-- **SQLite 3**（系统自带）
+- **MySQL 5.7+** 或 **MySQL 8.0+**
 
 ## 📁 目录结构
 
@@ -76,12 +76,12 @@ cp .env.example .env
 #### 数据库配置
 
 **DATABASE_URL**
-- 说明：数据库连接地址
-- 默认值：`sqlite+aiosqlite:///./live_chat.sqlite`
+- 说明：数据库连接地址（**必需，无默认值**）
+- 格式：`mysql+aiomysql://用户名:密码@主机地址:端口/数据库名`
 - 示例：
-  - SQLite：`sqlite+aiosqlite:///./live_chat.sqlite`
-  - MySQL：`mysql+aiomysql://user:password@localhost/dbname`
-  - PostgreSQL：`postgresql+asyncpg://user:password@localhost/dbname`
+  - `mysql+aiomysql://root:password@localhost:3306/chat`
+  - `mysql+aiomysql://user:pass@192.168.1.100:3306/live_chat`
+  - `mysql+aiomysql://yaocai_chat:password@119.45.125.28:11003/chat`
 
 **DEBUG_SQL**
 - 说明：是否在控制台打印 SQL 查询语句（调试用）
@@ -172,7 +172,7 @@ cp .env.example .env
 
 **开发环境：**
 ```env
-DATABASE_URL=sqlite+aiosqlite:///./live_chat_dev.db
+DATABASE_URL=mysql+aiomysql://root:password@localhost:3306/live_chat_dev
 HOST=0.0.0.0
 PORT=8000
 RELOAD=True
@@ -184,7 +184,7 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 
 **生产环境：**
 ```env
-DATABASE_URL=postgresql+asyncpg://user:password@db-server/live_chat_prod
+DATABASE_URL=mysql+aiomysql://live_chat:SecurePass123@db-server:3306/live_chat_prod
 HOST=0.0.0.0
 PORT=80
 RELOAD=False
@@ -476,100 +476,14 @@ git pull
 # 2. 安装/更新依赖
 pip install -r requirements.txt
 
-# 3. 备份数据库
-cp live_chat.sqlite live_chat.sqlite.backup.$(date +%Y%m%d_%H%M%S)
+# 3. 备份数据库（建议在 MySQL 中执行）
+# mysqldump -u用户名 -p密码 数据库名 > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 4. 应用迁移
 alembic upgrade head
 
 # 5. 重启服务
 # systemctl restart live_chat
-```
-
-## 🔧 SQLite 特殊配置
-
-### 已完成的配置
-
-项目已针对 SQLite 的限制进行了特殊配置：
-
-#### 1. 批量模式（Batch Mode）
-
-**位置：** `alembic/env.py`
-
-```python
-context.configure(
-    render_as_batch=True,  # ← SQLite 批量模式
-)
-```
-
-**作用：**
-- 自动处理 SQLite 不支持的 ALTER TABLE 操作
-- 通过"复制表"方式实现列删除、类型修改等操作
-
-#### 2. 外键约束
-
-**位置：** `alembic/env.py`
-
-```python
-if database_url.startswith("sqlite"):
-    connection.execute(text("PRAGMA foreign_keys=ON"))
-```
-
-**作用：**
-- SQLite 默认不启用外键约束
-- 必须在每次连接时手动启用
-- 确保数据完整性
-
-#### 3. 同步数据库 URL
-
-```python
-# Alembic 需要同步版本的 URL（去掉 aiosqlite）
-if "aiosqlite" in database_url:
-    database_url = database_url.replace("+aiosqlite", "")
-```
-
-**原因：**
-- FastAPI 使用异步驱动 `aiosqlite`
-- Alembic 执行迁移时使用同步操作
-
-### SQLite 限制
-
-| 操作 | SQL 语法 | SQLite 支持 | Alembic 解决方案 |
-|------|----------|------------|-----------------|
-| 删除列 | `ALTER TABLE DROP COLUMN` | ❌ | 批量模式（复制表） |
-| 修改列类型 | `ALTER COLUMN TYPE` | ❌ | 批量模式（复制表） |
-| 重命名列 | `ALTER COLUMN RENAME` | ⚠️ 部分版本 | 批量模式（复制表） |
-| 添加外键 | `ADD CONSTRAINT FOREIGN KEY` | ❌ | 批量模式（复制表） |
-| 添加列 | `ALTER TABLE ADD COLUMN` | ✅ | 原生支持 |
-| 重命名表 | `ALTER TABLE RENAME TO` | ✅ | 原生支持 |
-
-### 批量模式工作流程
-
-当执行删除列、修改类型等操作时：
-
-1. 创建临时表（新结构）
-2. 复制数据到临时表
-3. 删除旧表
-4. 重命名临时表为原表名
-
-**性能影响：**
-- 小表（<1万）：<1秒
-- 中表（1万-10万）：1-10秒
-- 大表（>10万）：10秒+
-- 磁盘空间需求约为原表的 2 倍
-
-### 验证配置
-
-```bash
-# 1. 检查当前迁移版本
-alembic current
-
-# 2. 查看迁移历史
-alembic history
-
-# 3. 验证外键约束
-sqlite3 live_chat.sqlite "PRAGMA foreign_keys;"
-# 应返回 1（已启用）
 ```
 
 ## 🔌 WebSocket 说明
@@ -753,12 +667,13 @@ DEBUG_SQL=True
 2. 确认模型继承自正确的 `Base`
 3. 尝试手动创建迁移：`alembic revision -m "description"`
 
-**Q: SQLite 外键约束没有生效？**  
-项目已在 `alembic/env.py` 中配置自动启用。验证方式：
-```bash
-sqlite3 live_chat.sqlite "PRAGMA foreign_keys;"
-# 应返回 1（已启用）
-```
+**Q: MySQL 连接失败怎么办？**  
+检查以下几点：
+1. MySQL 服务是否正常运行
+2. 数据库是否已创建（需手动创建）
+3. 用户名、密码、主机地址、端口是否正确
+4. 防火墙是否允许访问
+5. MySQL 用户是否有足够权限
 
 **Q: 如何部署到生产环境？**  
 1. 修改 `.env` 中的 `JWT_SECRET_KEY`

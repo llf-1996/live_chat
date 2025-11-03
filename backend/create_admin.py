@@ -79,57 +79,63 @@ async def create_admin_user(user_id: str, username: str, password: str):
 
 async def main():
     """主函数"""
-    print("=" * 60)
-    print("  在线客服系统 - 创建管理员账号")
-    print("=" * 60)
-    print()
+    from app.database import engine
     
-    # 注意：数据库表结构由 Alembic 管理（alembic upgrade head）
-    # 这里只处理数据，不创建表结构
-    
-    # 获取用户ID、用户名和密码
-    if len(sys.argv) >= 4:
-        # 命令行参数模式：python create_admin.py <user_id> <username> <password>
-        user_id = sys.argv[1]
-        username = sys.argv[2]
-        password = sys.argv[3]
-        print(f"用户ID: {user_id}")
-        print(f"用户名: {username}")
-        print(f"密码: {'*' * len(password)}")
+    try:
+        print("=" * 60)
+        print("  在线客服系统 - 创建管理员账号")
+        print("=" * 60)
         print()
-    else:
-        # 交互式模式
-        print("请输入管理员账号信息：\n")
         
-        user_id = input("用户ID: ").strip()
+        # 注意：数据库表结构由 Alembic 管理（alembic upgrade head）
+        # 这里只处理数据，不创建表结构
         
-        if not user_id:
-            print("❌ 错误：用户ID不能为空")
-            return
+        # 获取用户ID、用户名和密码
+        if len(sys.argv) >= 4:
+            # 命令行参数模式：python create_admin.py <user_id> <username> <password>
+            user_id = sys.argv[1]
+            username = sys.argv[2]
+            password = sys.argv[3]
+            print(f"用户ID: {user_id}")
+            print(f"用户名: {username}")
+            print(f"密码: {'*' * len(password)}")
+            print()
+        else:
+            # 交互式模式
+            print("请输入管理员账号信息：\n")
+            
+            user_id = input("用户ID: ").strip()
+            
+            if not user_id:
+                print("❌ 错误：用户ID不能为空")
+                return
+            
+            username = input("用户名: ").strip()
+            
+            if not username:
+                print("❌ 错误：用户名不能为空")
+                return
+            
+            password = getpass("密码: ").strip()
+            
+            if not password:
+                print("❌ 错误：密码不能为空")
+                return
+            
+            password_confirm = getpass("确认密码: ").strip()
+            
+            if password != password_confirm:
+                print("❌ 错误：两次输入的密码不一致")
+                return
+            
+            print()
         
-        username = input("用户名: ").strip()
-        
-        if not username:
-            print("❌ 错误：用户名不能为空")
-            return
-        
-        password = getpass("密码: ").strip()
-        
-        if not password:
-            print("❌ 错误：密码不能为空")
-            return
-        
-        password_confirm = getpass("确认密码: ").strip()
-        
-        if password != password_confirm:
-            print("❌ 错误：两次输入的密码不一致")
-            return
-        
-        print()
-    
-    # 创建管理员账号
-    print("正在创建管理员账号...")
-    await create_admin_user(user_id, username, password)
+        # 创建管理员账号
+        print("正在创建管理员账号...")
+        await create_admin_user(user_id, username, password)
+    finally:
+        # 关闭数据库引擎，确保所有连接被正确清理
+        await engine.dispose()
 
 
 if __name__ == "__main__":

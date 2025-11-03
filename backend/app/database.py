@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./live_chat.sqlite")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL 环境变量未设置，请在 .env 文件中配置")
+
 DEBUG_SQL = os.getenv("DEBUG_SQL", "False").lower() == "true"
 
 engine = create_async_engine(DATABASE_URL, echo=DEBUG_SQL)

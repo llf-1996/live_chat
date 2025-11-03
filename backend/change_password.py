@@ -34,11 +34,15 @@ async def change_user_password(user_id: str, new_password: str):
         print("\n请先安装依赖:")
         print("  pip install -r requirements.txt")
         print("\n或者安装特定模块:")
-        print("  pip install aiosqlite sqlalchemy passlib[bcrypt]")
+        print("  pip install aiomysql sqlalchemy passlib[bcrypt]")
         return False
     
     # 从环境变量读取数据库 URL
-    database_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./live_chat.sqlite")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        print("❌ 错误：DATABASE_URL 环境变量未设置")
+        print("请在 .env 文件中配置数据库连接信息")
+        return False
     
     # 创建数据库连接
     engine = create_async_engine(database_url, echo=False)

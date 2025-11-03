@@ -7,7 +7,7 @@ gunicorn==22.0.0
 
 # 数据库
 sqlalchemy==2.0.44
-aiosqlite==0.21.0
+aiomysql==0.2.0
 alembic==1.12.1
 
 # 数据验证

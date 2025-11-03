@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 从环境变量获取基础 URL
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+BASE_URL = os.getenv("BASE_URL")
+if not BASE_URL:
+    raise ValueError("BASE_URL 环境变量未设置，请在 .env 文件中配置")
 
 
 def build_full_url(path: str) -> str:

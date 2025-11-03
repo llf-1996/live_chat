@@ -1,6 +1,6 @@
 # 在线客服系统
 
-基于 FastAPI + SQLite + Vue3 + WebSocket 的实时在线客服系统，支持多角色实时沟通，响应式设计适配手机/平板/桌面。
+基于 FastAPI + MySQL + Vue3 + WebSocket 的实时在线客服系统，支持多角色实时沟通，响应式设计适配手机/平板/桌面。
 
 ## ✨ 核心特性
 
@@ -32,7 +32,7 @@
 
 ## 🛠️ 技术栈
 
-**后端：** Python 3.11 + FastAPI + SQLite + SQLAlchemy + Alembic + WebSocket  
+**后端：** Python 3.11 + FastAPI + MySQL + SQLAlchemy + Alembic + WebSocket  
 **前端：** Vue 3 + Vite + Element Plus + Pinia + Vue Router
 
 **详细技术文档：**
@@ -83,7 +83,10 @@ cp .env.example .env
 alembic upgrade head
 
 # 创建管理员账号
-python create_admin.py a1 admin admin123
+python create_admin.py a1 superadmin superadmin123
+
+# 修改默认管理员账号
+python change_password.py a2 admin123
 ```
 
 ### 3. 配置前端
@@ -242,14 +245,14 @@ python change_password.py a1 new_password_123
 
 **Q: 如何重置数据库？**  
 ```bash
-# 方式一：删除数据库文件
-rm backend/live_chat.sqlite
-cd backend
-alembic upgrade head
-
-# 方式二：回退所有迁移
+# 回退所有迁移后重新应用
 cd backend
 alembic downgrade base
+alembic upgrade head
+
+# 或者直接在 MySQL 中删除数据库后重建
+# DROP DATABASE chat; CREATE DATABASE chat;
+# 然后重新执行迁移
 alembic upgrade head
 ```
 
