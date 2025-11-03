@@ -153,7 +153,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #cbd5e1 100%);
   padding: 20px;
   overflow: hidden;
 }
@@ -172,7 +172,7 @@ onMounted(async () => {
 .circle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(100, 116, 139, 0.08);
   backdrop-filter: blur(10px);
   animation: float 20s infinite ease-in-out;
 }
@@ -251,21 +251,21 @@ onMounted(async () => {
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
   border-radius: 20px;
   margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 24px rgba(71, 85, 105, 0.25);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 24px rgba(71, 85, 105, 0.25);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 12px 32px rgba(71, 85, 105, 0.3);
   }
 }
 
@@ -310,11 +310,11 @@ onMounted(async () => {
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.12);
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
 }
 
 .login-button {
@@ -324,15 +324,15 @@ onMounted(async () => {
   font-weight: 600;
   letter-spacing: 1px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
   border: none;
   transition: all 0.3s;
 }
 
 .login-button:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 20px rgba(71, 85, 105, 0.3);
 }
 
 .login-button:active {
@@ -349,7 +349,7 @@ onMounted(async () => {
 
 .info-icon {
   font-size: 20px;
-  color: #3b82f6;
+  color: #64748b;
   margin-bottom: 12px;
 }
 
