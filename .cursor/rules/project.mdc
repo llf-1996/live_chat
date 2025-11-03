@@ -1,502 +1,204 @@
----
-alwaysApply: true
----
-
 # 在线客服系统 - 项目规则
 
 ## 项目概述
 
-这是一个基于 FastAPI + MySQL + Vue3 + WebSocket 的实时在线客服系统，支持多角色（买家、商户、官方客服、管理员）的在线沟通。
+基于 FastAPI + MySQL + Vue3 + WebSocket 的实时在线客服系统，支持多角色（买家、商户、官方客服、管理员）在线沟通。
 
 ## 技术栈
 
-**后端：**
-- Python 3.11+
-- FastAPI (异步 Web 框架)
-- MySQL + SQLAlchemy (异步 ORM)
-- Alembic (数据库迁移管理)
-- WebSocket (实时通信)
-- Uvicorn (ASGI 服务器)
-
-**前端：**
-- Vue 3 (Composition API)
-- Vue Router (前端路由)
-- Vite (构建工具)
-- Element Plus (UI 组件库)
-- Pinia (状态管理)
-- Axios (HTTP 客户端)
+**后端：** Python 3.11+ | FastAPI | MySQL + SQLAlchemy | Alembic | WebSocket | Uvicorn  
+**前端：** Vue 3 | Vue Router | Vite | Element Plus | Pinia | Axios
 
 ## 核心架构原则
 
-### 1. 会话驱动架构 (Conversation-Driven)
+### 1. 会话驱动架构
 - 所有聊天功能基于 Conversation 模型
-- 用户列表从会话中派生，不直接查询所有用户
-- 买家看到的商户列表 = 有会话的商户
-- 商户看到的客户列表 = 咨询该商户的客户
+- 用户列表从会话派生，不直接查询所有用户
 
 ### 2. 双通道设计
-- **HTTP 接口**：负责持久化存储（POST /api/messages/）
-- **WebSocket**：负责实时推送消息
-- 发送消息流程：先 HTTP 保存 → 再 WebSocket 推送
+- **HTTP**: 持久化存储（POST /api/messages/）
+- **WebSocket**: 实时推送消息
 
-### 3. 角色权限系统
-- **买家 (b{数字})**：访问 `/chat`，可与商户对话
-- **商户 (m{数字})**：访问 `/chat`，可与客户对话
-- **官方客服 (p{数字})**：访问 `/chat`，类似商户角色
-- **管理员 (a{数字})**：访问 `/admin`，只读监控所有会话
+### 3. 角色权限
+- **买家 (b{数字})**: 访问 /chat，与商户对话
+- **商户 (m{数字})**: 访问 /chat，与客户对话
+- **官方客服 (p{数字})**: 访问 /chat，类似商户
+- **管理员 (a{数字})**: 访问 /admin，只读监控
 
 ### 4. 路由分离
-- `/chat` - 聊天页面（买家、商户、官方客服）
-- `/admin` - 客服后台（仅管理员）
-- 参数：`user_id`（必需）、`target`（可选，自动创建会话）
+- `/chat` - 聊天页面（买家、商户、客服）
+- `/admin` - 管理后台（仅管理员）
+- 参数：`user_id`（必需）、`target`（可选）
 
 ## 代码规范
 
 ### 后端规范
 
-#### 1. API 接口规范
-- **列表接口必须返回 RESTful 格式：**
-  ```python
-  from app.schemas import PaginatedResponse
-  
-  @router.get("/", response_model=PaginatedResponse[ModelResponse])
-  async def get_list(page: int = 1, page_size: int = 20):
-      return PaginatedResponse(count=total, results=items)
-  ```
+#### API 接口
+```python
+# 列表接口返回 RESTful 格式
+from app.schemas import PaginatedResponse
 
-- **单个资源直接返回对象：**
-  ```python
-  @router.get("/{id}", response_model=ModelResponse)
-  async def get_item(id: str):
-      return item
-  ```
+@router.get("/", response_model=PaginatedResponse[ModelResponse])
+async def get_list(page: int = 1, page_size: int = 20):
+    return PaginatedResponse(count=total, results=items)
 
-#### 2. 分页参数标准
+# 单个资源直接返回对象
+@router.get("/{id}", response_model=ModelResponse)
+async def get_item(id: str):
+    return item
+```
+
+#### 分页参数
 - 使用 `page`（页码，从1开始）和 `page_size`（每页记录数）
 - 计算 skip：`skip = (page - 1) * page_size`
-- 默认值：用户/会话为 20，消息为 50
+- 默认值：用户/会话 20，消息 50
 
-#### 3. 用户ID规则
-- **类型**：`String(50)`，不使用整数
-- **格式**：`{角色首字母}{数字}`
-  - 买家：`b1`, `b2`, `b11`
-  - 商户：`m1`, `m2`, `m11`
-  - 管理员：`a1`, `a2`, `a11`
-  - 官方客服：`p1`, `p2`, `p11`
+#### 用户ID规则
+- 类型：`String(50)`（不使用整数）
+- 格式：`{角色首字母}{数字}`
+  - 买家：b1, b2
+  - 商户：m1, m2
+  - 管理员：a1, a2
+  - 客服：p1, p2
 
-#### 4. 数据库模型
-- 时间字段使用 Unix 时间戳（整数），不用 DateTime
-- 用户ID字段类型：`String(50)`
-- 外键引用：`Column(String(50), ForeignKey("users.id"))`
+#### 数据库模型
+- 时间字段：Unix 时间戳（整数）
+- 用户ID字段：`String(50)`
+- 外键：`Column(String(50), ForeignKey("users.id"))`
 
-#### 5. WebSocket 管理
-- 统一的用户级连接：`active_connections: Dict[str, WebSocket]`
-- 管理员自动加入监控池：`admin_users: Set[str]`
-- 消息推送给会话参与者 + 所有在线管理员
+#### WebSocket 管理
+- 用户级连接：`active_connections: Dict[str, WebSocket]`
+- 管理员监控池：`admin_users: Set[str]`
+- 推送给会话参与者 + 所有在线管理员
 
-#### 6. 环境变量配置规范
-- **关键配置项（安全相关）不得设置默认值**，必须在 `.env` 文件中显式配置：
-  - `DATABASE_URL` - 数据库连接地址（必需）
-  - `JWT_SECRET_KEY` - JWT 加密密钥（必需）
-  - `BASE_URL` - 应用基础 URL（必需）
-  
-- **配置缺失时必须抛出异常**，防止生产环境使用不安全的默认配置：
-  ```python
-  DATABASE_URL = os.getenv("DATABASE_URL")
-  if not DATABASE_URL:
-      raise ValueError("DATABASE_URL 环境变量未设置，请在 .env 文件中配置")
-  ```
+#### 环境变量配置
 
-- **可选配置项可设置合理默认值**：
-  - `DEBUG_SQL` - 默认 `False`
-  - `HOST` - 默认 `0.0.0.0`
-  - `PORT` - 默认 `8000`
-  - `MEDIA_DIR` - 默认 `media`
-  - `MAX_FILE_SIZE` - 默认 `10485760` (10MB)
-  - `CORS_ORIGINS` - 默认 `http://localhost:5173,http://localhost:3000`
+⚠️ **所有配置必需，无默认值！使用 `is None` 判断（不用 `if not`）**
+
+```python
+# ✅ 正确
+value = os.getenv("DATABASE_URL")
+if value is None:
+    raise ValueError("DATABASE_URL 环境变量未设置")
+
+# ❌ 错误：会把 False, 0, "" 误判
+if not value:
+    raise ValueError("未设置")
+```
+
+**必需配置（16项）：**
+- DATABASE_URL, DEBUG_SQL
+- JWT_SECRET_KEY, JWT_ALGORITHM, JWT_ACCESS_TOKEN_EXPIRE_DAYS
+- HOST, PORT, RELOAD, DEBUG, BASE_URL
+- CORS_ORIGINS, MEDIA_DIR, MAX_FILE_SIZE
+- APP_TITLE, APP_DESCRIPTION, APP_VERSION
 
 ### 前端规范
 
-#### 1. API 调用规范
-- **baseURL 配置：** `/api`
-- **路径格式：** 不要重复 `/api`
-  ```javascript
-  // ✅ 正确
-  api.get('/users/')              // → /api/users/
-  api.post('/messages/', data)    // → /api/messages/
-  
-  // ❌ 错误
-  api.get('/api/users/')          // → /api/api/users/ (404)
-  ```
+#### API 调用
+```javascript
+// baseURL 配置为 /api
+api.get('/users/')              // → /api/users/
+api.post('/messages/', data)    // → /api/messages/
+```
 
-#### 2. 列表数据处理
-- 从 `response.results` 获取数据
-- 从 `response.count` 获取总数
-  ```javascript
-  const response = await api.get('/users/')
-  users.value = response.results
-  totalUsers.value = response.count
-  ```
+#### 列表数据处理
+```javascript
+const response = await api.get('/users/')
+users.value = response.results  // 从 results 获取数据
+totalUsers.value = response.count
+```
 
-#### 3. 路由守卫
-- 检查 `user_id` 参数是否存在
-- 检查用户是否有效（调用 `loadCurrentUser`）
-- 管理员页面：验证 `role === 'admin'`
+#### 路由守卫
+- 检查 `user_id` 参数
+- 验证用户有效性
+- 管理员页面验证 `role === 'admin'`
 
-#### 4. 组件规范
-- 使用 Composition API
-- 状态管理使用 Pinia stores
-- Element Plus 组件按需引入
-- 样式使用 scoped CSS
+#### 组件规范
+- Composition API
+- Pinia 状态管理
+- Element Plus 按需引入
+- Scoped CSS
 
-#### 5. 响应式设计规范
-- **断点标准**：手机 <768px，平板 768-1023px，桌面 ≥1024px
-- **布局适配**：
-  - 手机端：单栏布局 + 底部导航（`activePanel` 控制显示）
-  - 平板端：左侧列表 + 中间聊天 + 右侧面板
-  - 桌面端：标准三栏布局
-- **全屏设计**：聊天页面使用 `100vw` 和 `100vh`，无边距
-- **响应式判断**：使用 `isMobile` ref + `window.resize` 监听
-- **字体和间距**：根据设备类型调整 `font-size`、`padding`、`gap`
-- **移动端优化**：
-  - 隐藏键盘快捷键提示（Ctrl+Enter）
-  - 使用通用图标（如 `MoreFilled` 表示更多菜单）
-  - 半屏弹窗（`el-drawer` direction="btt" size="70%"）
-  - 选择会话自动切换到聊天视图（`@conversation-selected` 事件）
+#### 响应式设计
+- 断点：手机 <768px，平板 768-1023px，桌面 ≥1024px
+- 手机端：单栏布局 + 底部导航（`activePanel` 控制）
+- 平板/桌面：多栏布局
+- 移动端优化：隐藏快捷键提示、半屏弹窗、自动切换视图
 
 ## 文档规范
 
-### 文档结构原则
-
-**❌ 不要创建多个独立的 .md 文档**  
-**✅ 将所有相关内容整合到对应的 README.md 中**
-
 ### 文档层级
 
-项目采用三级文档结构：
+1. **README.md** - 项目概览、快速开始、使用教程
+2. **backend/README.md** - 后端技术文档（技术栈、配置、API、数据库、部署）
+3. **frontend/README.md** - 前端技术文档（技术栈、配置、组件、状态管理、部署）
 
-1. **根目录 `README.md`** - 项目概览
-   - 项目介绍和核心特性
-   - 环境要求
-   - 快速开始（完整流程）
-   - 使用教程
-   - 功能规划
-   - 相关文档索引
+### 规则
 
-2. **`backend/README.md`** - 后端完整技术文档
-   - 技术栈详情
-   - 环境变量配置（完整章节）
-   - 数据库设计
-   - 数据库迁移管理（完整章节）
-   - API 规范
-   - WebSocket 说明
-   - 开发指南
-   - 性能优化
-   - 常见问题
+❌ 不要创建独立的 .md 文档（如 ENV_README.md）  
+✅ 将内容整合到对应的主 README.md 中  
+✅ 特殊说明作为章节添加，不单独建文件
 
-3. **`frontend/README.md`** - 前端完整技术文档
-   - 技术栈详情
-   - Vite 配置说明
-   - 路由配置
-   - 组件说明
-   - 状态管理
-   - API 调用规范
-   - 响应式设计指南
-   - 部署配置
+**优势：** 文档集中、易于维护、查找方便、避免重复
 
-### 文档编写规范
+## 关键注意事项
 
-**禁止创建的独立文档：**
-- ❌ `backend/ENV_README.md` - 应整合到 `backend/README.md` 的"环境变量配置"章节
-- ❌ `backend/MIGRATION_README.md` - 应整合到 `backend/README.md` 的"数据库迁移管理"章节
-- ❌ `backend/DATABASE_CONFIG.md` - 应整合到 `backend/README.md` 的"数据库配置"章节
-- ❌ `docs/xxx/README.md` - 特殊说明应整合到对应的主文档中
+1. ⚠️ **环境变量验证**
+   - 必须用 `is None` 判断（不用 `if not value`）
+   - `"False"`, `"0"`, `""` 都是有效配置值
+   - 所有16个配置项都必需，无默认值
 
-**允许的独立文档：**
-- ✅ `README.md` - 项目根目录
-- ✅ `backend/README.md` - 后端技术文档
-- ✅ `frontend/README.md` - 前端技术文档
-- ✅ `.cursor/rules/project.mdc` - 项目开发规范（本文件）
-- ✅ `alembic/README` - Alembic 快速命令参考（简短）
+2. ⚠️ **用户ID类型**
+   - 使用字符串 `String(50)`，不用整数
+   - 格式：角色首字母 + 数字（b1, m1, a1, p1）
 
-### 优势
+3. ⚠️ **列表接口格式**
+   - 必须返回 `{ count, results }` 格式
+   - 不能直接返回数组
 
-1. **文档集中** - 相关内容都在同一个文档中，无需跳转
-2. **易于维护** - 减少文档数量，降低维护成本
-3. **查找方便** - 使用目录结构快速定位，无需记忆多个文档路径
-4. **避免重复** - 统一文档避免内容重复和不一致
-5. **新人友好** - 只需阅读对应角色的 README.md 即可上手
+4. ⚠️ **文件上传**
+   - 保留原文件名：`原文件名_{时间戳}.扩展名`
+   - 按日期存储：`media/uploads/{年}/{月}/{日}/`
+   - 返回完整 URL（通过 BASE_URL 拼接）
 
-## 项目结构
+5. ⚠️ **Event Loop 清理**
+   - 应用关闭时调用 `await engine.dispose()`
+   - 避免 "Event loop is closed" 错误
 
-```
-backend/
-├── app/
-│   ├── routers/          # API 路由（users, conversations, messages, etc.）
-│   ├── models.py         # SQLAlchemy 数据库模型
-│   ├── schemas.py        # Pydantic 请求/响应模型
-│   ├── database.py       # 数据库连接配置
-│   └── websocket.py      # WebSocket 连接管理
-├── main.py               # FastAPI 应用入口
-├── requirements.txt      # Python 依赖
-└── README.md             # 后端完整技术文档（包含所有后端相关说明）
+6. ⚠️ **响应式设计**
+   - 所有组件必须支持移动端（<768px）
+   - 使用 CSS 媒体查询适配
+   - 移动端触控友好（按钮 ≥44×44px）
 
-frontend/
-├── src/
-│   ├── views/            # 页面视图（ChatView.vue, AdminView.vue）
-│   ├── components/       # Vue 组件
-│   │   ├── admin/        # 客服后台组件
-│   │   └── ...           # 聊天组件
-│   ├── router/           # Vue Router 配置
-│   ├── stores/           # Pinia stores（chat.js）
-│   ├── api/              # API 封装（chat.js）
-│   ├── App.vue           # 根组件（路由容器）
-│   └── main.js           # 应用入口
-├── package.json
-├── vite.config.js
-└── README.md             # 前端完整技术文档（包含所有前端相关说明）
-```
-
-## API 接口设计原则
-
-### 1. RESTful 风格
-- 资源名称使用复数：`/users/`, `/conversations/`, `/messages/`
-- 使用正确的 HTTP 方法：GET（查询）、POST（创建）、PUT（更新）、DELETE（删除）
-- 子资源嵌套：`/conversations/{id}/messages`
-
-### 2. 响应格式
-- 列表：`{ count: number, results: Array }`
-- 单个资源：直接返回对象
-- 错误：`{ detail: string }` (FastAPI 默认)
-
-### 3. 接口命名
-- 获取列表：`GET /api/{resource}/`
-- 获取详情：`GET /api/{resource}/{id}`
-- 创建：`POST /api/{resource}/`
-- 更新：`PUT /api/{resource}/{id}`
-- 删除：`DELETE /api/{resource}/{id}`
-
-## 数据库设计原则
-
-### 1. 核心模型
-- **User**：统一用户表，通过 `role` 字段区分角色
-- **Conversation**：会话表，包含 `customer_id` 和 `merchant_id`
-- **Message**：消息表，关联 `conversation_id` 和 `sender_id`
-- **QuickReply**：快捷消息表，关联 `user_id`
-
-### 2. 字段设计
-- 主键：字符串类型（`String(50)`）
-- 时间字段：整数时间戳（Unix timestamp）
-- 枚举字段：字符串（如 `role`, `message_type`, `status`）
-
-### 3. 关系设计
-- Conversation → User：`customer` 和 `merchant` 关系
-- Message → User：`sender` 关系
-- Message → Conversation：多对一关系
-
-## 响应式布局实现
-
-### 设备检测
-```javascript
-const isMobile = ref(window.innerWidth < 768)
-const handleResize = () => {
-  isMobile.value = window.innerWidth < 768
-}
-window.addEventListener('resize', handleResize)
-```
-
-### 手机端布局（<768px）
-- **单栏显示**：同一时间只显示一个面板
-- **状态控制**：使用 `activePanel` ref 切换视图（'list' / 'chat'）
-- **底部导航**：2 个按钮（会话、聊天）
-- **自动切换**：选择会话后自动跳转到聊天视图
-- **更多菜单**：集成到输入框工具栏，使用半屏弹窗
-
-### 平板端布局（768-1023px）
-- **双栏显示**：左侧会话列表 + 右侧聊天窗口
-- **隐藏面板**：更多功能面板隐藏或收起
-
-### 桌面端布局（≥1024px）
-- **三栏显示**：左侧列表 + 中间聊天 + 右侧面板
-- **固定宽度**：左侧 320px，右侧 300px，中间自适应
-
-### 样式适配示例
-```css
-/* 手机端 */
-@media (max-width: 767px) {
-  .chat-header {
-    height: 50px;
-    padding: 0 12px;
-    font-size: 14px;
-  }
-}
-
-/* 平板端 */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .chat-header {
-    height: 54px;
-    padding: 0 16px;
-  }
-}
-
-/* 桌面端（默认） */
-.chat-header {
-  height: 60px;
-  padding: 0 20px;
-}
-```
-
-## 消息推送逻辑
-
-### 推送规则
-1. 买家发送消息 → 推送给商户 + 所有在线管理员
-2. 商户发送消息 → 推送给买家 + 所有在线管理员
-3. 管理员不能发送消息（只读监控）
-
-### 实现方式
-```python
-# 通过 conversation_id 查询会话
-conversation = get_conversation(conversation_id)
-
-# 判断接收者
-if sender_id == conversation.customer_id:
-    # 买家发送 → 推送给商户
-    send_to_user(message, conversation.merchant_id)
-else:
-    # 商户发送 → 推送给买家
-    send_to_user(message, conversation.customer_id)
-
-# 同时推送给所有在线管理员
-for admin_id in admin_users:
-    if admin_id != sender_id:
-        send_to_user(message, admin_id)
-```
-
-## 常见开发场景
-
-### 添加新的 API 接口
-1. 在 `backend/app/routers/` 创建或修改路由文件
-2. 定义 Pydantic schema（`schemas.py`）
-3. 列表接口使用 `PaginatedResponse[T]`
-4. 使用 `page` 和 `page_size` 分页参数
-5. 在 `main.py` 注册路由
-
-### 添加新的前端页面
-1. 在 `frontend/src/views/` 创建页面组件
-2. 在 `frontend/src/router/index.js` 添加路由配置
-3. 设置路由元数据（`meta.requiresAdmin` 等）
-4. 页面组件中使用 Pinia store 管理状态
-
-### 修改数据库模型
-1. 修改 `backend/app/models.py`
-2. 生成迁移文件：`alembic revision --autogenerate -m "描述变更"`
-3. 检查生成的迁移文件（`alembic/versions/` 目录）
-4. 应用迁移：`alembic upgrade head`
-5. 更新对应的 Pydantic schema
-
-**注意事项：**
-- 使用 Alembic 管理所有数据库结构变更，不要手动修改数据库
-- 生产环境执行迁移前务必备份数据库：`mysqldump -u用户 -p 数据库名 > backup.sql`
-- 详细文档：查看 `backend/README.md` 中的"数据库迁移管理"章节
-
-## 测试和调试
-
-### 内置测试用户
-
-系统启动时会自动创建以下测试用户：
-
-**管理员**
-- `a1`, `a2` - admin（需通过命令行 `create_admin.py` 创建）
-
-**买家**
-- `b1` - 保安堂药房（传统药房）
-- `b2` - 异世界药局（现代连锁药局）
-
-**商户**
-- `m1` - 保和堂医药集团（大型医药集团）
-- `m2` - 阿纳斯蒂制药（神经科学药企）
-- `m3` - 梅迪西斯制药（天然植物药厂）
-
-**官方客服**
-- `p1` - 官方客服（平台客服）
-
-### 快速测试
-```bash
-# 买家咨询商户（自动创建会话）
-http://localhost:5173/chat?user_id=b1&target=m1
-
-# 管理员监控
-http://localhost:5173/admin?user_id=a1
-```
-
-### API 文档
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## 注意事项
-
-1. **不要使用整数用户ID**：所有用户ID必须是字符串格式
-2. **不要重复 `/api` 前缀**：前端 API 调用时路径从资源名开始
-3. **列表接口必须返回 `{ count, results }`**：不能直接返回数组
-4. **分页参数使用 `page` 和 `page_size`**：不使用 `skip` 和 `limit`
-5. **时间字段使用时间戳**：不使用 DateTime 对象
-6. **管理员只读**：管理员角色无法发送消息，只能监控
-7. **会话自动创建**：使用 `target` 参数时，不存在的会话会自动创建
-8. **用户验证**：所有页面必须验证 `user_id` 是否有效
-9. **响应式设计**：
-   - 所有新组件必须支持响应式适配（手机/平板/桌面）
-   - 使用 CSS 媒体查询 `@media (max-width: 767px)`（手机）和 `@media (min-width: 768px) and (max-width: 1023px)`（平板）
-   - 手机端隐藏不必要的文字提示（如快捷键）
-   - 移动端使用触控友好的尺寸（按钮最小 44×44px）
-10. **文件上传规范**：
-    - 保留原始文件名，格式：`原文件名_{时间戳}.扩展名`
-    - 按日期目录存储：`media/uploads/{年}/{月}/{日}/`
-    - 数据库存储相对路径，API 返回完整 URL（通过 `BASE_URL` 配置）
-11. **环境变量配置**：
-    - 关键配置项（`DATABASE_URL`、`JWT_SECRET_KEY`、`BASE_URL`）必须在 `.env` 文件中显式配置，不得设置默认值
-    - 配置缺失时必须抛出异常，防止生产环境使用不安全的默认配置
-    - 可选配置项可设置合理默认值（如 `HOST`、`PORT`、`DEBUG_SQL` 等）
-
-## 环境要求
-
-- **Python** 3.11+
-- **Node.js** 20+
-- **MySQL** 5.7+ / 8.0+
-- **pnpm** 8+ （推荐使用 pnpm 作为包管理器）
-- 浏览器支持 ES6+ 和 WebSocket
-
-### 安装 pnpm
-
-```bash
-npm install -g pnpm
-```
-
-### 版本约束说明
-
-项目在 `frontend/package.json` 中配置了版本约束：
-
-```json
-{
-  "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=8.0.0"
-  },
-  "packageManager": "pnpm@8.15.0"
-}
-```
-
-- `engines` 字段：声明项目对 Node.js 和 pnpm 的最低版本要求
-- `packageManager` 字段：指定推荐的包管理器版本（Corepack 自动启用）
-
-## 启动命令
+## 启动流程
 
 ```bash
 # 后端
-cd backend && python main.py
+cd backend
+cp .env.example .env     # 编辑配置
+python main.py
 
-# 前端（推荐使用 pnpm）
-cd frontend && pnpm install && pnpm dev
+# 前端
+cd frontend
+cp .env.example .env     # 编辑配置
+pnpm install
+pnpm dev
 
-# 或使用 npm（不推荐）
-cd frontend && npm install && npm run dev
+# 创建管理员
+cd backend
+python create_admin.py
 ```
+
+## 内置测试用户
+
+- 管理员：a1, a2
+- 买家：b1（保安堂药房）, b2（异世界药局）
+- 商户：m1（保和堂医药集团）, m2（阿纳斯蒂制药）, m3（梅迪西斯制药）
+- 客服：p1（官方客服）
+
+## API 文档
+
+- Swagger UI: http://localhost:11075/docs
+- ReDoc: http://localhost:11075/redoc

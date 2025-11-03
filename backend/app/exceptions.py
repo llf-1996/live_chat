@@ -105,7 +105,10 @@ async def general_exception_handler(request: Request, exc: Exception):
     logger.error(traceback.format_exc())
     
     # 开发环境返回详细错误，生产环境返回通用错误
-    debug_mode = os.getenv("DEBUG", "False").lower() == "true"
+    debug_str = os.getenv("DEBUG")
+    if debug_str is None:
+        raise ValueError("DEBUG 环境变量未设置，请在 .env 文件中配置")
+    debug_mode = debug_str.lower() == "true"
     
     if debug_mode:
         return JSONResponse(

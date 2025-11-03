@@ -12,11 +12,17 @@ load_dotenv()
 
 # JWT 配置
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not SECRET_KEY:
+if SECRET_KEY is None:
     raise ValueError("JWT_SECRET_KEY 环境变量未设置，请在 .env 文件中配置")
 
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_DAYS", "7"))
+ALGORITHM = os.getenv("JWT_ALGORITHM")
+if ALGORITHM is None:
+    raise ValueError("JWT_ALGORITHM 环境变量未设置，请在 .env 文件中配置")
+
+access_token_expire_days_str = os.getenv("JWT_ACCESS_TOKEN_EXPIRE_DAYS")
+if access_token_expire_days_str is None:
+    raise ValueError("JWT_ACCESS_TOKEN_EXPIRE_DAYS 环境变量未设置，请在 .env 文件中配置")
+ACCESS_TOKEN_EXPIRE_DAYS = int(access_token_expire_days_str)
 
 # 密码加密上下文
 # 使用 bcrypt_sha256 以获得更好的兼容性和支持更长的密码

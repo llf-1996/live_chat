@@ -178,6 +178,9 @@ const quickReplies = computed(() => chatStore.quickReplies)
 // 检查当前用户是否是管理员（只读权限）
 const isAdmin = computed(() => chatStore.currentUser.role === 'admin')
 
+// 本地占位符图片（SVG data URI）
+const placeholderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect width="80" height="80" fill="%23e2e8f0"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%2394a3b8" text-anchor="middle" dy=".3em"%3E商品%3C/text%3E%3C/svg%3E'
+
 // 模拟订单数据列表
 const mockOrders = ref([
   {
@@ -185,14 +188,14 @@ const mockOrders = ref([
     orderTime: '2025-07-16 10:02:34',
     amount: '299.97',
     productCount: 1,
-    productImage: 'https://via.placeholder.com/80x80?text=Product1'
+    productImage: placeholderImage
   },
   {
     orderNo: '2125071263448015',
     orderTime: '2025-07-12 18:19:31',
     amount: '138.27',
     productCount: 1,
-    productImage: 'https://via.placeholder.com/80x80?text=Product2'
+    productImage: placeholderImage
   }
 ])
 

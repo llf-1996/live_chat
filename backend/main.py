@@ -23,7 +23,7 @@ logging.basicConfig(
 # 加载环境变量
 load_dotenv()
 
-from app.database import get_db
+from app.database import get_db, engine
 from app.routers import users, conversations, messages, quick_replies, upload, auth
 from app.websocket import manager
 from app.models import User, QuickReply, UserRole
@@ -37,7 +37,9 @@ from app.exceptions import (
 )
 
 # 从环境变量读取配置
-MEDIA_DIR = os.getenv("MEDIA_DIR", "media")
+MEDIA_DIR = os.getenv("MEDIA_DIR")
+if MEDIA_DIR is None:
+    raise ValueError("MEDIA_DIR 环境变量未设置，请在 .env 文件中配置")
 
 
 # 数据初始化函数
@@ -202,19 +204,36 @@ async def lifespan(app: FastAPI):
     yield
 
     # 关闭时
-    print("👋 应用关闭")
+    print("👋 应用关闭，清理数据库连接...")
+    await engine.dispose()
+    print("✅ 数据库连接已关闭")
 
+
+# 验证应用配置
+APP_TITLE = os.getenv("APP_TITLE")
+if APP_TITLE is None:
+    raise ValueError("APP_TITLE 环境变量未设置，请在 .env 文件中配置")
+
+APP_DESCRIPTION = os.getenv("APP_DESCRIPTION")
+if APP_DESCRIPTION is None:
+    raise ValueError("APP_DESCRIPTION 环境变量未设置，请在 .env 文件中配置")
+
+APP_VERSION = os.getenv("APP_VERSION")
+if APP_VERSION is None:
+    raise ValueError("APP_VERSION 环境变量未设置，请在 .env 文件中配置")
 
 # 创建FastAPI应用
 app = FastAPI(
-    title=os.getenv("APP_TITLE", "在线客服系统"),
-    description=os.getenv("APP_DESCRIPTION", "基于FastAPI和WebSocket的实时在线客服系统"),
-    version=os.getenv("APP_VERSION", "1.0.0"),
+    title=APP_TITLE,
+    description=APP_DESCRIPTION,
+    version=APP_VERSION,
     lifespan=lifespan
 )
 
 # 配置CORS
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+cors_origins = os.getenv("CORS_ORIGINS")
+if cors_origins is None:
+    raise ValueError("CORS_ORIGINS 环境变量未设置，请在 .env 文件中配置")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins.split(","),  # 从环境变量读取，多个地址用逗号分隔
@@ -344,9 +363,24 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    
+    # 验证服务器配置
+    host = os.getenv("HOST")
+    if host is None:
+        raise ValueError("HOST 环境变量未设置，请在 .env 文件中配置")
+    
+    port_str = os.getenv("PORT")
+    if port_str is None:
+        raise ValueError("PORT 环境变量未设置，请在 .env 文件中配置")
+    
+    reload_str = os.getenv("RELOAD")
+    if reload_str is None:
+        raise ValueError("RELOAD 环境变量未设置，请在 .env 文件中配置")
+    reload = reload_str.lower() == "true"
+    
     uvicorn.run(
         "main:app",
-        host=os.getenv("HOST", "0.0.0.0"),
-        port=int(os.getenv("PORT", "8000")),
-        reload=os.getenv("RELOAD", "True").lower() == "true"
+        host=host,
+        port=int(port_str),
+        reload=reload
     )
