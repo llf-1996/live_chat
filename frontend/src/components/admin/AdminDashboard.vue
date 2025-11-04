@@ -27,6 +27,10 @@
             <el-icon><ChatLineRound /></el-icon>
             <span>消息管理</span>
           </el-menu-item>
+          <el-menu-item index="test-setup">
+            <el-icon><Tools /></el-icon>
+            <span>测试初始化</span>
+          </el-menu-item>
         </el-menu>
 
         <!-- 管理员信息和退出登录 -->
@@ -56,6 +60,7 @@
         <UserManagement v-else-if="activeMenu === 'users'" />
         <ConversationManagement v-else-if="activeMenu === 'conversations'" />
         <MessageManagement v-else-if="activeMenu === 'messages'" />
+        <TestUserSetup v-else-if="activeMenu === 'test-setup'" />
       </el-main>
     </el-container>
   </div>
@@ -65,12 +70,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import { Monitor, User, ChatDotRound, ChatLineRound, UserFilled } from '@element-plus/icons-vue'
+import { Monitor, User, ChatDotRound, ChatLineRound, UserFilled, Tools } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import RealTimeMonitor from './RealTimeMonitor.vue'
 import UserManagement from './UserManagement.vue'
 import ConversationManagement from './ConversationManagement.vue'
 import MessageManagement from './MessageManagement.vue'
+import TestUserSetup from './TestUserSetup.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

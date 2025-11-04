@@ -170,6 +170,21 @@ class UploadResponse(BaseModel):
     file_type: str
 
 
+# ===== User Ensure Schemas =====
+class UserEnsureItem(BaseModel):
+    """批量创建/更新用户的单个用户信息"""
+    id: str = Field(..., description="用户ID")
+    role: UserRole = Field(..., description="用户角色")
+    username: Optional[str] = Field(None, description="用户名，不提供则自动生成")
+    avatar: Optional[str] = Field(None, description="头像路径，不提供则使用默认头像")
+    description: Optional[str] = Field(None, description="用户描述")
+
+
+class UserEnsureRequest(BaseModel):
+    """批量创建/更新用户请求"""
+    users: List[UserEnsureItem] = Field(..., description="用户列表")
+
+
 # ===== Auth Schemas =====
 class LoginRequest(BaseModel):
     """登录请求"""
