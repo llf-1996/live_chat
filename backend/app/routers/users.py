@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from ..database import get_db
 from ..models import User, UserRole
-from ..schemas import UserCreate, UserUpdate, UserResponse, PaginatedResponse
+from ..schemas import UserCreate, UserUpdate, UserResponse, PaginatedResponse, UserEnsureRequest, UserEnsureItem
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -118,3 +118,74 @@ async def delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
     user.status = "deleted"
     await db.commit()
     return {"status": "success", "message": "User deleted successfully"}
+
+
+@router.post("/ensure", response_model=List[UserResponse])
+async def ensure_users(request: UserEnsureRequest, db: AsyncSession = Depends(get_db)):
+    """批量创建或更新用户（如果用户不存在则创建，存在则跳过）"""
+    created_or_existing_users = []
+    
+    for user_item in request.users:
+        # 检查用户是否已存在
+        result = await db.execute(
+            select(User).where(User.id == user_item.id)
+        )
+        existing_user = result.scalar_one_or_none()
+        
+        if existing_user:
+            # 用户已存在，直接返回
+            created_or_existing_users.append(existing_user)
+        else:
+            # 用户不存在，创建新用户
+            
+            # 生成默认用户名（如果未提供）
+            username = user_item.username
+            if not username:
+                # 使用时间戳（毫秒）作为后缀
+                import time
+                timestamp_ms = int(time.time() * 1000)
+                
+                # 生成默认用户名
+                role_name_map = {
+                    UserRole.BUYER: "买家",
+                    UserRole.MERCHANT: "商家",
+                    UserRole.ADMIN: "管理员"
+                }
+                username = f"{role_name_map.get(user_item.role, '用户')}{timestamp_ms}"
+            
+            # 生成默认头像（如果未提供）
+            avatar = user_item.avatar
+            if not avatar:
+                # 根据角色选择默认头像（随机 1 或 2）
+                import random
+                
+                if user_item.role == UserRole.BUYER:
+                    # buyer1.png 和 buyer2.png 随机选择
+                    avatar = f"/api/media/avatars/buyer{random.randint(1, 2)}.png"
+                elif user_item.role == UserRole.MERCHANT:
+                    # merchant1.png 和 merchant2.png 随机选择
+                    avatar = f"/api/media/avatars/merchant{random.randint(1, 2)}.png"
+                else:  # ADMIN
+                    avatar = "/api/media/avatars/admin.png"
+            
+            # 创建新用户
+            new_user = User(
+                id=user_item.id,
+                username=username,
+                avatar=avatar,
+                role=user_item.role,
+                description=user_item.description,
+                status="active"
+            )
+            
+            db.add(new_user)
+            created_or_existing_users.append(new_user)
+    
+    # 提交所有更改
+    await db.commit()
+    
+    # 刷新所有用户对象
+    for user in created_or_existing_users:
+        await db.refresh(user)
+    
+    return created_or_existing_users

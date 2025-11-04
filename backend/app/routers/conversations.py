@@ -74,6 +74,21 @@ async def create_conversation(
     db: AsyncSession = Depends(get_db)
 ):
     """创建或获取会话"""
+    # 验证客户和商家是否存在
+    customer_result = await db.execute(
+        select(User).where(User.id == conversation.customer_id)
+    )
+    customer = customer_result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail=f"Customer with id '{conversation.customer_id}' not found")
+    
+    merchant_result = await db.execute(
+        select(User).where(User.id == conversation.merchant_id)
+    )
+    merchant = merchant_result.scalar_one_or_none()
+    if not merchant:
+        raise HTTPException(status_code=404, detail=f"Merchant with id '{conversation.merchant_id}' not found")
+    
     # 检查是否已存在会话
     result = await db.execute(
         select(Conversation)

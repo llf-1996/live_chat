@@ -39,6 +39,10 @@ export default Object.assign(api, {
     return api.get(`/users/${userId}`)
   },
 
+  ensureUsers(users) {
+    return api.post('/users/ensure', { users })
+  },
+
   // 商家相关（现在是User，role=merchant）
   getMerchants() {
     return api.get('/users/', { params: { role: 'merchant' } })

@@ -295,7 +295,87 @@ export const useChatStore = defineStore('chat', () => {
       console.log('已成功打开会话:', conversation.id)
     } catch (error) {
       console.error('打开会话失败:', error)
+      // 给用户友好的错误提示
+      const errorMsg = error.response?.data?.detail || '打开会话失败，请确认用户已创建或刷新页面重试'
+      if (typeof ElMessage !== 'undefined') {
+        ElMessage.error(errorMsg)
+      } else {
+        alert(errorMsg)
+      }
       throw error  // 抛出错误以便上层处理
+    }
+  }
+
+  async function ensureConversationExists(targetId) {
+    try {
+      console.log(`确保与用户${targetId}的会话存在`)
+      
+      // 根据当前用户角色，确定会话的customer_id和merchant_id
+      let conversationData
+      if (currentUser.value.role === 'buyer') {
+        // 买家：target是merchant_id
+        conversationData = {
+          customer_id: currentUser.value.id,
+          merchant_id: targetId
+        }
+      } else if (currentUser.value.role === 'merchant') {
+        // 商家：target是customer_id
+        conversationData = {
+          customer_id: targetId,
+          merchant_id: currentUser.value.id
+        }
+      } else {
+        // 管理员：暂不支持
+        console.log('管理员角色暂不支持此操作')
+        return
+      }
+      
+      // 创建或获取会话（后端会处理幂等性）
+      console.log('正在确保会话存在...', conversationData)
+      await api.createConversation(conversationData)
+      console.log('会话已确保存在')
+      
+      // 注意：不加载会话列表，不选中会话
+      // 这些操作将在后续步骤中执行
+    } catch (error) {
+      console.error('确保会话存在失败:', error)
+      // 给用户友好的错误提示
+      const errorMsg = error.response?.data?.detail || '创建会话失败，请确认用户已创建'
+      if (typeof ElMessage !== 'undefined') {
+        ElMessage.error(errorMsg)
+      } else {
+        alert(errorMsg)
+      }
+      throw error
+    }
+  }
+
+  async function selectConversationByUserId(targetUserId) {
+    try {
+      console.log(`从会话列表中选中用户${targetUserId}的会话`)
+      
+      // 根据当前用户角色，从会话列表中查找对应的会话
+      const conversation = conversations.value.find(conv => {
+        if (currentUser.value.role === 'buyer') {
+          // 买家：查找 merchant_id 匹配的会话
+          return conv.merchant_id === targetUserId
+        } else if (currentUser.value.role === 'merchant') {
+          // 商家：查找 customer_id 匹配的会话
+          return conv.customer_id === targetUserId
+        }
+        return false
+      })
+      
+      if (conversation) {
+        console.log('找到目标会话，准备选中:', conversation.id)
+        await selectConversation(conversation) // 会自动加载消息
+      } else {
+        console.warn(`未在会话列表中找到与用户${targetUserId}的会话`)
+        throw new Error(`未找到与用户${targetUserId}的会话`)
+      }
+    } catch (error) {
+      console.error('选中会话失败:', error)
+      throw error
     }
   }
 
@@ -460,7 +540,9 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     markAsRead,
     createConversation,
-    openConversationWithUser,  // 导出自动打开对话方法
+    openConversationWithUser,  // 导出自动打开对话方法（完整流程：创建→加载列表→选中）
+    ensureConversationExists,  // 导出确保会话存在方法（仅创建会话）
+    selectConversationByUserId,  // 导出根据用户ID选中会话方法（从已加载列表中选中）
     loadQuickReplies,
     connectWebSocket,
     disconnectWebSocket,

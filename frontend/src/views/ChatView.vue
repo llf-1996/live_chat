@@ -155,20 +155,25 @@ onMounted(async () => {
     console.warn('访问受限：缺少必要的访问凭证')
     return
   }
-  // 1. 首先加载当前用户信息（从数据库获取角色等信息）
-  await chatStore.loadCurrentUser()
   
-  // 2. 加载会话列表（所有角色都需要）
+  // 1. 并行加载用户信息和快捷回复（无依赖关系，可同时执行）
+  await Promise.all([
+    chatStore.loadCurrentUser(),
+    chatStore.loadQuickReplies(chatStore.userId)
+  ])
+  
+  // 2. 如果有 target_user_id，先创建会话（不加载列表，不选中）
+  if (chatStore.targetUserId) {
+    await chatStore.ensureConversationExists(chatStore.targetUserId)
+  }
+  
+  // 3. 加载会话列表（此时新创建的会话已存在）
   await chatStore.loadConversations()
   
-  // 3. 根据角色加载快捷消息（管理员不需要，只读权限）
-  if (chatStore.currentUser.role === 'buyer' || chatStore.currentUser.role === 'merchant') {
-    await chatStore.loadQuickReplies(chatStore.currentUser.id)
-  }
-
-  // 4. 如果有target参数，自动打开对话
+  // 4. 如果有 target_user_id，从已加载的列表中选中会话
+  //    selectConversation 会自动加载消息
   if (chatStore.targetUserId) {
-    await chatStore.openConversationWithUser(chatStore.targetUserId)
+    await chatStore.selectConversationByUserId(chatStore.targetUserId)
   }
 
   // 5. 建立WebSocket连接（所有角色都需要）
