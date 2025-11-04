@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pathlib import Path
+from typing import Tuple
 import os
 import time
 from datetime import datetime
@@ -13,7 +14,10 @@ load_dotenv()
 router = APIRouter(prefix="/api/upload", tags=["upload"])
 
 # 媒体文件目录（从环境变量读取）
-MEDIA_DIR = Path(os.getenv("MEDIA_DIR", "media"))
+media_dir_str = os.getenv("MEDIA_DIR")
+if media_dir_str is None:
+    raise ValueError("MEDIA_DIR 环境变量未设置，请在 .env 文件中配置")
+MEDIA_DIR = Path(media_dir_str)
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 # 允许的文件类型
@@ -27,11 +31,14 @@ ALLOWED_FILE_TYPES = {
     "text/plain"
 }
 
-# 最大文件大小（从环境变量读取，默认 10MB）
-MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", "10485760"))
+# 最大文件大小（从环境变量读取）
+max_file_size_str = os.getenv("MAX_FILE_SIZE")
+if max_file_size_str is None:
+    raise ValueError("MAX_FILE_SIZE 环境变量未设置，请在 .env 文件中配置")
+MAX_FILE_SIZE = int(max_file_size_str)
 
 
-async def _save_uploaded_file(file: UploadFile, allowed_types: set) -> tuple[str, str]:
+async def _save_uploaded_file(file: UploadFile, allowed_types: set) -> Tuple[str, str]:
     """
     通用文件上传处理函数
     
@@ -76,7 +83,7 @@ async def _save_uploaded_file(file: UploadFile, allowed_types: set) -> tuple[str
         f.write(contents)
 
     # 返回完整 URL
-    relative_path = f"/media/uploads/{year}/{month}/{day}/{filename}"
+    relative_path = f"/api/media/uploads/{year}/{month}/{day}/{filename}"
     full_url = build_full_url(relative_path)
     return full_url, file.filename
 

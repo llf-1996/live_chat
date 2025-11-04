@@ -24,10 +24,15 @@ from app.models import Base
 config = context.config
 
 # 从环境变量获取数据库 URL
-database_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./live_chat.sqlite")
-# Alembic 需要同步版本的 URL（去掉 aiosqlite）
-if "aiosqlite" in database_url:
-    database_url = database_url.replace("+aiosqlite", "")
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    raise ValueError("DATABASE_URL 环境变量未设置")
+
+# Alembic 需要同步版本的 MySQL 驱动
+# 将 aiomysql 替换为 pymysql（aiomysql 的同步版本依赖）
+if "aiomysql" in database_url:
+    database_url = database_url.replace("+aiomysql", "+pymysql")
+
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
@@ -65,8 +70,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        # SQLite 特殊配置：使用批量模式处理表结构变更
-        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -88,19 +91,9 @@ def run_migrations_online() -> None:
 
     # 使用 begin() 确保自动提交事务
     with connectable.begin() as connection:
-        # SQLite 特殊配置：启用外键约束和同步模式
-        if database_url.startswith("sqlite"):
-            connection.execute(text("PRAGMA foreign_keys=ON"))
-            # 使用 WAL 模式提高并发性能，并确保事务安全
-            connection.execute(text("PRAGMA journal_mode=WAL"))
-            connection.execute(text("PRAGMA synchronous=FULL"))
-        
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # SQLite 特殊配置：使用批量模式处理表结构变更
-            # 这允许 Alembic 通过"复制表"方式实现 SQLite 不支持的操作（如删除列）
-            render_as_batch=True,
         )
 
         with context.begin_transaction():

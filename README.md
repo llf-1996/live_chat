@@ -1,326 +1,176 @@
 # 在线客服系统
 
-基于 FastAPI + SQLite + Vue3 + WebSocket 的实时在线客服系统，支持多角色实时沟通，响应式设计适配手机/平板/桌面。
+基于 FastAPI + MySQL + Vue3 + WebSocket 的实时在线客服系统，支持多角色（买家、商户、官方客服、管理员）在线沟通。
 
 ## ✨ 核心特性
 
-- 🎯 **多角色系统** - 买家、商户、官方客服、管理员
-- 💬 **实时通信** - WebSocket 双通道（持久化 + 实时推送）
-- 🟢 **在线状态** - 实时显示用户在线/离线
-- 🔐 **JWT 认证** - 管理员登录系统（7天免登录）
-- 📱 **响应式设计** - 完美适配手机/平板/桌面
-- 📎 **文件上传** - 支持图片和文件（按日期存储）
-- ⚡ **快捷回复** - 商户快捷消息模板
-- 🛡️ **异常处理** - 全局友好错误提示
+- 🚀 **实时通信** - WebSocket 双向通信，消息即时送达
+- 👥 **多角色支持** - 买家、商户、官方客服、管理员
+- 📱 **响应式设计** - 完美适配桌面端和移动端
+- 💬 **快捷回复** - 自定义快捷消息，提升沟通效率
+- 📎 **文件传输** - 支持图片、文档等文件上传和预览
+- 🔒 **JWT 认证** - 安全的用户身份验证
+- 📊 **管理后台** - 实时监控、用户管理、数据统计
+- 🎨 **现代化 UI** - Element Plus 组件库，界面美观易用
 
 ## 📸 界面预览
 
 ### 客服后台管理
-#### 登录
-<img src="docs/screenshots/login.png" alt="管理员登录页面" width="800">
+![管理后台](docs/screenshots/admin_index.png)
 
-#### 首页
-<img src="docs/screenshots/admin_index.png" alt="客服后台管理页面" width="800">
-
-### 聊天界面（桌面端）
-<img src="docs/screenshots/chat_pc.png" alt="桌面端聊天界面" width="800">
+### 聊天界面
+![聊天界面](docs/screenshots/chat_pc.png)
 
 ### 移动端适配
-<img src="docs/screenshots/chat_mobile.png" alt="移动端聊天界面" width="280">
-
-<img src="docs/screenshots/chat_mobile_2.png" alt="移动端聊天界面" width="280">
+![移动端](docs/screenshots/chat_mobile.png)
 
 ## 🛠️ 技术栈
 
-**后端：** Python 3.11 + FastAPI + SQLite + SQLAlchemy + Alembic + WebSocket  
-**前端：** Vue 3 + Vite + Element Plus + Pinia + Vue Router
-
-**详细技术文档：**
-- 后端技术详情：[backend/README.md](backend/README.md)
-- 前端技术详情：[frontend/README.md](frontend/README.md)
+**后端：** Python 3.11 | FastAPI | MySQL | SQLAlchemy | Alembic | WebSocket  
+**前端：** Vue 3 | Vite | Element Plus | Pinia | Vue Router | Axios
 
 ## 📋 环境要求
 
-| 环境 | 版本 | 说明 |
-|------|------|------|
-| **Python** | 3.11+ | 后端运行环境 |
-| **Node.js** | 20+ | 前端运行环境 |
-| **pnpm** | 8+ | 推荐的包管理器 |
-
-### 安装 pnpm
-
-```bash
-npm install -g pnpm
-```
-
-### 浏览器要求
-- 支持 ES6+ 语法
-- 支持 WebSocket
-- 推荐使用 Chrome / Edge / Firefox 最新版本
+Python 3.11+ | Node.js 20+ | pnpm 8+ | MySQL 5.7+/8.0+
 
 ## 🚀 快速开始
 
-### 1. 克隆项目
-
 ```bash
-git clone <repository>
+# 1. 克隆项目
+git clone <repository-url>
 cd live_chat
-```
 
-### 2. 配置后端
-
-```bash
+# 2. 后端配置
 cd backend
-
-# 安装依赖
+cp .env.example .env           # 编辑配置（16项必需）
 pip install -r requirements.txt
-
-# 复制环境变量配置
-cp .env.example .env
-# 默认配置可直接使用，生产环境需修改 JWT_SECRET_KEY
-
-# 初始化数据库
 alembic upgrade head
+python create_admin.py         # 创建管理员
+python main.py                 # 启动后端
 
-# 创建管理员账号
-python create_admin.py a1 admin admin123
-```
-
-### 3. 配置前端
-
-```bash
+# 3. 前端配置（新终端）
 cd frontend
-
-# 安装依赖
+cp .env.example .env           # 编辑配置
 pnpm install
+pnpm dev                       # 启动前端
 ```
 
-### 4. 启动服务
-
-```bash
-# 后端（终端1）
-cd backend
-python main.py
-
-# 前端（终端2）
-cd frontend
-pnpm dev
-```
-
-### 5. 访问系统
-
-| 服务 | 地址 | 说明 |
-|------|------|------|
-| **前端界面** | http://localhost:5173 | 主界面 |
-| **API 文档** | http://localhost:8000/docs | Swagger UI |
-| **ReDoc 文档** | http://localhost:8000/redoc | ReDoc UI |
+**访问：**
+- 前端: http://localhost:5173
+- API 文档: http://localhost:11075/api/docs
 
 ## 📖 使用教程
 
 ### 快速访问
 
-| 角色 | 访问链接 | 用户名 |
-|------|---------|--------|
-| 买家 | `http://localhost:5173/chat?user_id=b1` | 保安堂药房 |
-| 商户 | `http://localhost:5173/chat?user_id=m1` | 保和堂医药集团 |
-| 官方客服 | `http://localhost:5173/chat?user_id=p1` | 官方客服 |
-| 管理员 | `http://localhost:5173/login` | admin |
+**登录页面：** http://localhost:5173/login
+
+**聊天页面：** http://localhost:5173/chat?user_id={用户ID}&target_user_id={对话对象ID}
+
+**管理后台：** http://localhost:5173/admin?user_id={管理员ID}
 
 ### 内置测试用户
 
-系统启动时会自动创建以下测试用户：
-
-**管理员**
-| 用户ID | 用户名 | 访问方式 |
-|--------|--------|---------|
-| a1, a2 | admin | 通过 `/login` 登录（需先创建账号） |
-
-**买家**
-| 用户ID | 用户名 | 说明 |
-|--------|--------|------|
-| b1 | 保安堂药房 | 传统药房 |
-| b2 | 异世界药局 | 现代连锁药局 |
-
-**商户**
-| 用户ID | 用户名 | 说明 |
-|--------|--------|------|
-| m1 | 保和堂医药集团 | 大型医药集团 |
-| m2 | 阿纳斯蒂制药 | 神经科学药企 |
-| m3 | 梅迪西斯制药 | 天然植物药厂 |
-
-**官方客服**
-| 用户ID | 用户名 | 说明 |
-|--------|--------|------|
-| p1 | 官方客服 | 平台客服 |
+| 角色 | 用户ID | 用户名 | 默认密码 |
+|------|--------|--------|----------|
+| 管理员 | a1, a2 | admin | admin123 |
+| 买家 | b1, b2 | 保安堂药房、异世界药局 | （无需密码） |
+| 商户 | m1, m2, m3 | 保和堂医药、阿纳斯蒂制药、梅迪西斯制药 | （无需密码） |
+| 客服 | p1 | 官方客服 | （无需密码） |
 
 ### 使用示例
 
-#### 1. 买家咨询商户
-
+**1. 买家与商户对话**
 ```
-http://localhost:5173/chat?user_id=b1&target=m1
+http://localhost:5173/chat?user_id=b1&target_user_id=m1
 ```
 
-参数说明：
-- `user_id=b1`：当前用户为买家 b1
-- `target=m1`：自动打开与商户 m1 的会话（不存在时自动创建）
-
-#### 2. 商户接待客户
-
+**2. 商户查看客户列表**
 ```
 http://localhost:5173/chat?user_id=m1
 ```
 
-商户登录后，可以看到所有咨询该商户的客户列表。
-
-#### 3. 管理员监控
-
+**3. 管理员监控**
 ```
-http://localhost:5173/login
+http://localhost:5173/admin?user_id=a1
 ```
-
-使用创建的管理员账号登录，可以实时监控所有会话（只读模式）。
-
-#### 4. 测试实时消息
-
-1. 打开两个浏览器窗口
-2. 窗口1：访问 `http://localhost:5173/chat?user_id=b1`
-3. 窗口2：访问 `http://localhost:5173/chat?user_id=m1`
-4. 在任一窗口发送消息，另一窗口会实时收到
 
 ## 💡 功能介绍
 
 ### 核心功能
 
-#### 1. 多角色系统
-- **买家**：可以咨询多个商户
-- **商户**：接待多个客户咨询
-- **官方客服**：处理平台相关问题
-- **管理员**：监控所有会话（只读）
-
-#### 2. 实时通信
-- **双通道设计**：HTTP 持久化 + WebSocket 实时推送
-- **在线状态**：实时显示用户在线/离线
-- **消息推送**：买家/商户互推，管理员自动接收
-
-#### 3. 文件功能
-- **图片上传**：支持 JPG、PNG、GIF 格式
-- **文件上传**：支持各类文档（PDF、DOC、XLS 等）
-- **日期目录**：按 `年/月/日` 自动分类存储
-
-#### 4. 快捷回复
-- 商户可预设常用回复
-- 一键发送，提高效率
-
-#### 5. 响应式设计
-- **手机端**（<768px）：单栏布局 + 底部导航
-- **平板端**（768-1023px）：双栏布局
-- **桌面端**（≥1024px）：标准三栏布局
+- ✅ 用户管理（买家、商户、客服、管理员）
+- ✅ 实时消息推送（WebSocket）
+- ✅ 会话管理（创建、查询、列表）
+- ✅ 消息发送（文本、图片、文件）
+- ✅ 快捷回复（自定义、管理）
+- ✅ 文件上传（图片、文档，10MB限制）
+- ✅ 管理后台（数据统计、实时监控）
+- ✅ 响应式设计（桌面端、移动端）
+- ✅ 暗色主题（登录页面优化）
 
 ## ❓ 常见问题
 
-**Q: 如何创建管理员账号？**  
-```bash
-cd backend
-python create_admin.py <user_id> <username> <password>
+**Q: 后端启动失败？**  
+检查：Python版本、依赖安装、.env配置（15项必需）、MySQL运行
 
-# 示例
-python create_admin.py a1 admin admin123
+**Q: 前端无法连接后端？**  
+检查：后端运行、端口正确（11075）、.env配置、CORS设置
+
+**Q: WebSocket 连接失败？**  
+检查：后端WebSocket服务、URL格式、防火墙
+
+**Q: 多个后端进程端口冲突？**  
+原因：后台启动多个进程导致端口被占用  
+解决：检查并清理占用端口的进程
+```bash
+netstat -ano | findstr :11075
+taskkill /F /PID <进程ID>
 ```
 
-**Q: 如何修改管理员密码？**  
-```bash
-cd backend
-python change_password.py <user_id> <new_password>
-
-# 示例
-python change_password.py a1 new_password_123
-```
-
-**Q: 如何修改配置？**  
-编辑 `backend/.env` 文件，重启后端服务生效。详见 [backend/README.md](backend/README.md) 中的"环境变量配置"章节。
-
-**Q: 如何重置数据库？**  
-```bash
-# 方式一：删除数据库文件
-rm backend/live_chat.sqlite
-cd backend
-alembic upgrade head
-
-# 方式二：回退所有迁移
-cd backend
-alembic downgrade base
-alembic upgrade head
-```
-
-**Q: 如何管理数据库结构变更？**  
-使用 Alembic 进行版本管理，详见 [backend/README.md](backend/README.md) 中的"数据库迁移管理"章节。
-
-**Q: 前端如何访问后端 API？**  
-开发环境通过 Vite 代理，生产环境需配置 Nginx 反向代理。详见 [frontend/README.md](frontend/README.md)。
+**Q: 如何修改端口？**  
+后端：修改 `backend/.env` 中的 `PORT`  
+前端：修改 `frontend/.env` 中的 `VITE_PORT`
 
 ## 🔮 功能规划
 
 ### 已完成 ✅
-- [x] 多角色系统（买家、商户、客服、管理员）
-- [x] 实时通信（WebSocket）
-- [x] 在线状态显示
-- [x] JWT 管理员认证
-- [x] 响应式设计（手机/平板/桌面）
-- [x] 文件上传功能
-- [x] 快捷回复
-- [x] 全局异常处理
-- [x] 数据库迁移管理
+- 基础聊天功能
+- WebSocket 实时通信
+- 文件上传下载
+- 管理后台
+- 移动端适配
 
 ### 待开发 📋
-- [ ] 历史订单管理
-- [ ] 买家/商户注册登录
-- [ ] 群聊功能
-- [ ] 消息撤回
-- [ ] 消息搜索
-- [ ] 表情包支持
-- [ ] 语音消息
-- [ ] 视频通话
-- [ ] 数据统计报表
-- [ ] 消息已读回执优化
-- [ ] 离线消息推送
-- [ ] 原生移动端 App
-
-### 性能优化 🚀
-- [ ] 消息分页加载优化
-- [ ] 图片懒加载
-- [ ] WebSocket 断线重连优化
-- [ ] Redis 缓存集成
-- [ ] CDN 静态资源加速
-
-### 运维支持 🔧
-- [ ] Docker 容器化
-- [ ] CI/CD 自动部署
-- [ ] 日志系统优化
-- [ ] 监控告警系统
-- [ ] 数据库备份策略
+- 消息撤回功能
+- 群聊功能
+- 消息已读/未读状态
+- 在线状态显示
+- 表情包支持
+- 消息搜索功能
+- 敏感词过滤
 
 ## 📅 更新日志
 
-### 2025-11-02
-- ✅ 响应式设计（手机/平板/桌面全适配）
-- ✅ 用户在线/离线状态系统
-- ✅ JWT 管理员登录认证（优化登录页面设计）
-- ✅ 全局异常处理
-- ✅ 文件上传优化（日期目录 + 原名保留）
-- ✅ 静态资源 URL 智能处理（CDN 支持）
-- ✅ 环境变量配置系统
-- ✅ Alembic 数据库迁移管理（自动追踪模型变更）
+### 2025-11-03
+- ✅ 数据库迁移：SQLite → MySQL
+- ✅ 环境变量强制验证（使用 is None，16项配置）
+- ✅ RELOAD 热重载配置化（支持开发/生产环境）
+- ✅ 登录页面UI优化（柔和配色）
+- ✅ Event Loop 清理优化
+- ✅ 文档重构简化（-54.9%）
 
-### 2025-11-01
-- ✅ 前端路由分离（`/chat` 和 `/admin`）
-- ✅ RESTful API 规范化
-- ✅ 用户ID字符串化
-- ✅ 自动创建会话功能
+### 2025-11-02
+- ✅ 项目初始化
+- ✅ 基础功能开发
+- ✅ 管理后台实现
 
 ## 📚 相关文档
 
-- **后端技术文档**：[backend/README.md](backend/README.md)
-- **前端技术文档**：[frontend/README.md](frontend/README.md)
-- **项目开发规范**：[.cursor/rules/project.mdc](.cursor/rules/project.mdc)
+- [后端技术文档](backend/README.md) - 详细的后端开发文档
+- [前端技术文档](frontend/README.md) - 详细的前端开发文档
+- [项目开发规则](.cursor/rules/project.mdc) - 开发规范和注意事项
 
+## 📄 开源协议
+
+本项目采用 MIT 协议开源。

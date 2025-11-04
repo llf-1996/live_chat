@@ -7,7 +7,7 @@ export const useChatStore = defineStore('chat', () => {
   const urlParams = new URLSearchParams(window.location.search)
   const userIdParam = urlParams.get('user_id')
   const userId = ref(userIdParam || null)  // 当前用户ID（必填，无默认值）- 字符串类型
-  const targetUserId = urlParams.get('target') || null  // 目标用户ID（非必填）- 字符串类型
+  const targetUserId = urlParams.get('target_user_id') || null  // 目标用户ID（非必填）- 字符串类型
   
   // 状态
   const currentUser = ref({
@@ -309,8 +309,8 @@ export const useChatStore = defineStore('chat', () => {
 
   function connectWebSocket() {
     // 从环境变量获取 WebSocket 地址
-    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000'
-    const wsUrl = `${wsBaseUrl}/ws/${currentUser.value.id}`
+    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:11075'
+    const wsUrl = `${wsBaseUrl}/api/ws/${currentUser.value.id}`
     
     ws.value = new WebSocket(wsUrl)
 
