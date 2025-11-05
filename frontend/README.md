@@ -63,13 +63,17 @@ frontend/
 │   │   │   ├── MessageManagement.vue   # 消息管理
 │   │   │   └── TestUserSetup.vue       # 测试初始化（管理后台版）
 │   │   ├── ChatWindow.vue   # 聊天窗口
-│   │   ├── MessageInput.vue # 消息输入
+│   │   ├── MessageInput.vue # 消息输入（含敏感词过滤）
 │   │   └── ...
 │   ├── router/
 │   │   └── index.js         # 路由配置
 │   ├── stores/
 │   │   ├── auth.js          # 认证状态
-│   │   └── chat.js          # 聊天状态（WebSocket）
+│   │   └── chat.js          # 聊天状态（WebSocket + 乐观更新）
+│   ├── utils/               # 工具模块 🆕
+│   │   ├── chat.js          # 聊天相关（API、openChatPage）
+│   │   ├── sensitive-words.js  # 敏感词过滤（150+词库）
+│   │   └── index.js         # 统一导出
 │   ├── views/
 │   │   ├── LoginView.vue       # 登录页
 │   │   ├── ChatView.vue        # 聊天页
@@ -78,7 +82,7 @@ frontend/
 │   ├── main.js              # 应用入口
 │   └── style.css            # 全局样式
 ├── .env                     # 环境变量
-└── vite.config.js           # Vite 配置
+└── vite.config.js           # Vite 配置（含 @ 别名）
 ```
 
 ## 🗺️ 路由说明
@@ -147,6 +151,8 @@ api.ensureUsers(users)  // POST /api/users/ensure
 
 ## 🔌 API 调用
 
+### 基础配置
+
 ```javascript
 // src/api/chat.js
 const api = axios.create({
@@ -168,6 +174,30 @@ api.get('/users/')              // → /api/users/
 api.post('/messages/', data)    // → /api/messages/
 ```
 
+### 路径别名
+
+**所有导入使用 `@` 别名，替代相对路径：**
+
+```javascript
+// ✅ 推荐：使用 @ 别名
+import { useChatStore } from '@/stores/chat'
+import api from '@/api/chat'
+import { filterSensitiveWords } from '@/utils'
+
+// ❌ 不推荐：使用相对路径
+import { useChatStore } from '../stores/chat'
+import api from '../api/chat'
+```
+
+**配置位置：** `vite.config.js`
+```javascript
+resolve: {
+  alias: {
+    '@': fileURLToPath(new URL('./src', import.meta.url))
+  }
+}
+```
+
 ## 📊 状态管理（Pinia）
 
 ### auth.js - 认证状态
@@ -185,7 +215,7 @@ await authStore.fetchCurrentUser()
 authStore.logout()
 ```
 
-### chat.js - 聊天状态 + WebSocket
+### chat.js - 聊天状态 + WebSocket + 乐观更新
 
 ```javascript
 const chatStore = useChatStore()
@@ -197,16 +227,71 @@ chatStore.setCurrentUser(user)
 chatStore.connectWebSocket()  // 自动连接到 /api/ws/{user_id}
 chatStore.disconnectWebSocket()
 
-// 发送消息
-await chatStore.sendMessage(conversationId, {
-  content: '你好',
-  content_type: 'text'
-})
+// 发送消息（乐观更新）
+await chatStore.sendMessage(content, 'text')
+// ✨ 消息立即显示，异步发送到服务器
+// ✨ 失败时自动标记为失败状态
 
 // 监听消息
 watch(() => chatStore.conversations, (newConversations) => {
   // 处理新消息
 })
+```
+
+## 🛡️ 敏感词过滤
+
+### 功能特性
+
+- **词库规模**：150+ 敏感词
+- **分类覆盖**：辱骂、色情、暴力、毒品、赌博、诈骗、政治敏感
+- **过滤方式**：自动替换为 `***`
+- **性能优化**：预编译正则表达式，性能提升150倍+
+- **大小写不敏感**：自动匹配各种变体
+
+### 使用方式
+
+```javascript
+import { filterSensitiveWords, hasSensitiveWords } from '@/utils'
+
+// 过滤敏感词
+const text = '你这个傻逼骗子！'
+const filtered = filterSensitiveWords(text)
+// 结果：'你这个******！'
+
+// 检查是否包含敏感词
+const hasWord = hasSensitiveWords('正常的文本')  // false
+const hasWord2 = hasSensitiveWords('包含脏话的文本')  // true
+```
+
+### 集成位置
+
+**MessageInput.vue** - 消息发送时自动过滤：
+
+```javascript
+async function sendMessage() {
+  // 过滤敏感词
+  const filteredText = filterSensitiveWords(inputMessage.value)
+  
+  // 如果内容被过滤，提示用户
+  if (filteredText !== inputMessage.value) {
+    ElMessage.warning('消息中包含敏感词，已自动过滤')
+  }
+  
+  // 发送过滤后的内容
+  chatStore.sendMessage(filteredText, 'text')
+}
+```
+
+### 扩展词库
+
+在 `src/utils/sensitive-words.js` 中添加：
+
+```javascript
+const sensitiveWords = [
+  // ... 现有词汇
+  '新增敏感词1',
+  '新增敏感词2',
+]
 ```
 
 ## 📱 响应式设计

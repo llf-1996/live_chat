@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # 在线客服系统 - 开发规则
 
 基于 FastAPI + MySQL + Vue3 + WebSocket 的实时在线客服系统。
@@ -83,6 +87,47 @@ VITE_WS_BASE_URL=ws://localhost:11075       # 不含 /api/ws
 - HTTP: `baseURL: '/api'` + `/auth/login` = `/api/auth/login`
 - WebSocket: `${wsBaseUrl}/api/ws/${userId}`
 
+#### 模块导入规范
+
+**⚠️ 强制使用 @ 别名，禁止相对路径（`../`）**
+
+```javascript
+// ✅ 正确
+import { useChatStore } from '@/stores/chat'
+import api from '@/api/chat'
+import { filterSensitiveWords } from '@/utils'
+
+// ❌ 错误
+import { useChatStore } from '../stores/chat'
+```
+
+**例外：** 同级目录可用 `./` 相对路径
+
+#### 敏感词过滤
+
+**⚠️ 所有用户输入必须过滤**
+
+```javascript
+const filteredText = filterSensitiveWords(inputMessage.value)
+if (filteredText !== inputMessage.value) {
+  ElMessage.warning('消息中包含敏感词，已自动过滤')
+}
+```
+
+#### 乐观更新
+
+**⚠️ 发送消息立即清空输入框**
+
+```javascript
+// ✅ 正确
+inputMessage.value = ''
+chatStore.sendMessage(filteredText, 'text')
+
+// ❌ 错误：等待响应
+await chatStore.sendMessage(filteredText, 'text')
+inputMessage.value = ''
+```
+
 #### API 调用
 
 ```javascript
@@ -103,32 +148,26 @@ totalUsers.value = response.count
 
 ## 关键注意事项
 
-### 1. 环境变量验证
-- ⚠️ 必须用 `is None` 判断（不用 `if not value`）
-- `"False"`, `"0"`, `""` 都是有效配置值
-- 所有配置都必需，无默认值
+### 1. 前端规范
+- ⚠️ 强制使用 `@` 别名导入（不用 `../`）
+- ⚠️ 所有用户输入必须经过敏感词过滤
+- ⚠️ 发送消息必须使用乐观更新（立即清空输入框）
 
-### 2. 用户 ID 类型
-- ⚠️ 使用字符串 `String(50)`，不用整数
-- 格式：角色首字母 + 数字（b1, m1, a1, p1）
+### 2. 消息已读状态
+- ⚠️ 后端：只标记 `sender_id != reader_id` 的消息
+- ⚠️ 前端：只在有未读消息时调用标记接口
 
-### 3. 列表接口格式
-- ⚠️ 必须返回 `{ count, results }` 格式
-- 不能直接返回数组
+### 3. 环境变量验证
+- ⚠️ 必须用 `is None` 判断（`"False"`, `"0"`, `""` 都是有效值）
 
-### 4. Event Loop 清理
+### 4. 用户 ID 与接口格式
+- ⚠️ 用户 ID 用字符串 `String(50)`（格式：b1, m1, a1, p1）
+- ⚠️ 列表接口必须返回 `{ count, results }`
+
+### 5. 生产部署
 - ⚠️ 应用关闭时调用 `await engine.dispose()`
-- 避免 "Event loop is closed" 错误
-
-### 5. 静态文件处理
-- **开发环境**: FastAPI 提供 (`app.mount("/api/media", ...)`)
-- **生产环境**: Nginx 直接提供（性能提升 10-100 倍）
-- Nginx 配置顺序: `/api/media/` 必须在 `/api/` 之前
-
-### 6. Nginx 代理配置
-- ⚠️ 必须配置 `X-Forwarded-For` 和 `X-Forwarded-Proto`（传递客户端信息）
-- ⚠️ 关闭缓冲 `proxy_buffering off` 和 `proxy_request_buffering off`（避免参数丢失）
-- ⚠️ `proxy_pass` 末尾不加 `/`（保留完整路径）
+- ⚠️ Nginx: `/api/media/` 配置在 `/api/` 之前
+- ⚠️ Nginx: 必须配置 `X-Forwarded-*` 和关闭缓冲
 
 ## API 访问地址
 
