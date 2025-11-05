@@ -15,11 +15,11 @@
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
-import { useChatStore } from '../../stores/chat'
-import { useAuthStore } from '../../stores/auth'
-import AdminConversationList from '../AdminConversationList.vue'
-import ChatWindow from '../ChatWindow.vue'
-import OrderPanel from '../OrderPanel.vue'
+import { useChatStore } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
+import AdminConversationList from '@/components/AdminConversationList.vue'
+import ChatWindow from '@/components/ChatWindow.vue'
+import OrderPanel from '@/components/OrderPanel.vue'
 
 const chatStore = useChatStore()
 const authStore = useAuthStore()

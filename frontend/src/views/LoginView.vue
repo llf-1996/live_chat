@@ -77,7 +77,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import { User, Lock, ChatDotRound, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 

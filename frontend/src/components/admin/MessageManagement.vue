@@ -173,7 +173,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Download } from '@element-plus/icons-vue'
-import api from '../../api/chat'
+import api from '@/api/chat'
 
 const messages = ref([])
 const totalMessages = ref(0)

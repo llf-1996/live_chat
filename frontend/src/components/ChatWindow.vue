@@ -121,8 +121,8 @@
 
 <script setup>
 import { computed, watch, nextTick, ref } from 'vue'
-import { useChatStore } from '../stores/chat'
-import MessageInput from './MessageInput.vue'
+import { useChatStore } from '@/stores/chat'
+import MessageInput from '@/components/MessageInput.vue'
 import { Document, Right, Select, Loading } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()

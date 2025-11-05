@@ -146,7 +146,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import api from '../../api/chat'
+import api from '@/api/chat'
 
 const conversations = ref([])
 const totalConversations = ref(0)
