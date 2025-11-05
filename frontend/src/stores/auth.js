@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '../api/chat'
+import api from '@/api/chat'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态

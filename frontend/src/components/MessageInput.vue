@@ -79,11 +79,12 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import { useChatStore } from '../stores/chat'
+import { useChatStore } from '@/stores/chat'
 import { ElMessage } from 'element-plus'
 import { Folder, Picture, MoreFilled } from '@element-plus/icons-vue'
-import OrderPanel from './OrderPanel.vue'
-import api from '../api/chat'
+import OrderPanel from '@/components/OrderPanel.vue'
+import api from '@/api/chat'
+import { filterSensitiveWords } from '@/utils'
 
 const chatStore = useChatStore()
 const inputMessage = ref('')
@@ -132,8 +133,20 @@ defineExpose({
 async function sendMessage() {
   if (!inputMessage.value.trim()) return
 
-  await chatStore.sendMessage(inputMessage.value, 'text')
+  // 过滤敏感词
+  const originalText = inputMessage.value
+  const filteredText = filterSensitiveWords(originalText)
+  
+  // 如果内容被过滤，提示用户
+  if (filteredText !== originalText) {
+    ElMessage.warning('消息中包含敏感词，已自动过滤')
+  }
+  
+  // ✅ 立即清空输入框（乐观更新，提升响应速度）
   inputMessage.value = ''
+  
+  // 异步发送消息（不阻塞 UI）
+  chatStore.sendMessage(filteredText, 'text')
 }
 
 function handleKeyDown(event) {

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '../api/chat'
+import api from '@/api/chat'
 
 export const useChatStore = defineStore('chat', () => {
   // 从 URL 参数获取用户ID和目标用户ID
@@ -126,8 +126,15 @@ export const useChatStore = defineStore('chat', () => {
     
     // 管理员查看会话时不标记为已读（只读监控）
     if (currentUser.value?.role !== 'admin') {
-      // 立即标记为已读（会更新数据库和本地状态）
-      await markAsRead(conversation.id)
+      // ✅ 只有当会话有未读消息时才标记为已读
+      const hasUnread = currentUser.value.role === 'buyer' 
+        ? conversation.customer_unread_count > 0 
+        : conversation.merchant_unread_count > 0
+      
+      if (hasUnread) {
+        // 立即标记为已读（会更新数据库和本地状态）
+        await markAsRead(conversation.id)
+      }
     }
     
     // 不需要重新加载会话列表，因为 markAsRead 已经更新了本地的未读计数
@@ -175,6 +182,21 @@ export const useChatStore = defineStore('chat', () => {
   async function sendMessage(content, messageType = 'text') {
     if (!currentConversation.value) return
 
+    // ✅ 乐观更新：立即添加消息到 UI，提升用户体验
+    const tempMessage = {
+      id: `temp-${Date.now()}`, // 临时ID
+      conversation_id: currentConversation.value.id,
+      sender_id: currentUser.value.id,
+      content,
+      message_type: messageType,
+      created_at: Math.floor(Date.now() / 1000),
+      is_read: false,
+      sender: currentUser.value,
+      _sending: true // 标记为发送中
+    }
+    
+    messages.value.push(tempMessage)
+
     try {
       const messageData = {
         conversation_id: currentConversation.value.id,
@@ -183,8 +205,14 @@ export const useChatStore = defineStore('chat', () => {
         message_type: messageType
       }
 
+      // 异步发送到服务器
       const newMessage = await api.sendMessage(messageData)
-      messages.value.push(newMessage)
+      
+      // 替换临时消息为真实消息
+      const tempIndex = messages.value.findIndex(m => m.id === tempMessage.id)
+      if (tempIndex !== -1) {
+        messages.value[tempIndex] = newMessage
+      }
 
       // 通过WebSocket发送
       if (ws.value && isConnected.value) {
@@ -197,10 +225,17 @@ export const useChatStore = defineStore('chat', () => {
         }))
       }
 
-      // 更新会话列表
-      await loadConversations()
+      // 异步更新会话列表（不阻塞 UI）
+      loadConversations().catch(err => console.error('更新会话列表失败:', err))
     } catch (error) {
       console.error('发送消息失败:', error)
+      
+      // 发送失败，标记消息为失败状态
+      const tempIndex = messages.value.findIndex(m => m.id === tempMessage.id)
+      if (tempIndex !== -1) {
+        messages.value[tempIndex]._failed = true
+        messages.value[tempIndex]._sending = false
+      }
     }
   }
 
@@ -389,7 +424,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function connectWebSocket() {
     // 从环境变量获取 WebSocket 地址
-    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:11075'
+    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL
     const wsUrl = `${wsBaseUrl}/api/ws/${currentUser.value.id}`
     
     ws.value = new WebSocket(wsUrl)

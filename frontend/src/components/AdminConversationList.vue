@@ -95,7 +95,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Search, Monitor, Right } from '@element-plus/icons-vue'
-import { useChatStore } from '../stores/chat'
+import { useChatStore } from '@/stores/chat'
 
 const chatStore = useChatStore()
 const searchKeyword = ref('')

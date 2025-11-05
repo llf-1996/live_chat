@@ -164,7 +164,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import api from '../../api/chat'
+import api from '@/api/chat'
 
 // 用户列表
 const users = ref([

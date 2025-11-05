@@ -7,8 +7,8 @@
 
 <script setup>
 import { onMounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
-import AdminDashboard from '../components/admin/AdminDashboard.vue'
+import { useAuthStore } from '@/stores/auth'
+import AdminDashboard from '@/components/admin/AdminDashboard.vue'
 
 const authStore = useAuthStore()
 

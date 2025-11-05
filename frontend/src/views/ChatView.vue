@@ -88,11 +88,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useChatStore } from '../stores/chat'
-import MerchantList from '../components/MerchantList.vue'
-import BuyerList from '../components/BuyerList.vue'
-import ChatWindow from '../components/ChatWindow.vue'
-import OrderPanel from '../components/OrderPanel.vue'
+import { useChatStore } from '@/stores/chat'
+import MerchantList from '@/components/MerchantList.vue'
+import BuyerList from '@/components/BuyerList.vue'
+import ChatWindow from '@/components/ChatWindow.vue'
+import OrderPanel from '@/components/OrderPanel.vue'
 import { ChatDotRound, ChatLineRound } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()

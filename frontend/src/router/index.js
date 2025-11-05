@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ChatView from '../views/ChatView.vue'
-import AdminView from '../views/AdminView.vue'
-import LoginView from '../views/LoginView.vue'
-import { useAuthStore } from '../stores/auth'
+import ChatView from '@/views/ChatView.vue'
+import AdminView from '@/views/AdminView.vue'
+import LoginView from '@/views/LoginView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),

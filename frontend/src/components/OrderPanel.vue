@@ -163,9 +163,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useChatStore } from '../stores/chat'
+import { useChatStore } from '@/stores/chat'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import api from '../api/chat'
+import api from '@/api/chat'
 
 const emit = defineEmits(['use-quick-reply'])
 
