@@ -1,0 +1,88 @@
+# Node.js / 前端
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.vite/
+.cache/
+stats.html
+visualizer.html
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+env/
+ENV/
+.venv/
+
+# Java / Maven
+target/
+*.class
+.mvn/
+*.jar
+*.war
+*.ear
+
+# IDE / 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+
+# 日志和临时文件
+logs/
+*.log
+*.tmp
+*.temp
+*.pid
+*.seed
+
+# 数据库
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+# 环境配置
+# .env
+# .env.*
+# !.env.example
+# *.local
+
+# 输出和结果
+output/
+result/
+media/
+static/
+
+# 测试覆盖率
+coverage/
+.coverage
+*.cover
+.hypothesis/
+
+# 打包文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 系统文件
+.git/
+*.bak
+*.orig
+*~
