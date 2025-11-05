@@ -118,6 +118,8 @@ alembic downgrade -1
 - `/api/users/` - 用户管理
   - `POST /api/users/ensure` - 批量创建/更新用户（测试用）
 - `/api/conversations/` - 会话管理
+  - `PUT /api/conversations/{id}/messages/read-all` - 标记消息为已读
+  - `PUT /api/conversations/{id}/read` - 标记会话为已读
 - `/api/messages/` - 消息管理
 - `/api/quick-replies/` - 快捷回复
 - `/api/upload/` - 文件上传
@@ -153,6 +155,28 @@ POST /api/users/ensure
 # - 自动生成默认用户名（使用时间戳，如买家1730812345678）
 # - 自动随机分配默认头像（buyer1/buyer2, merchant1/merchant2）
 # - 无需查询数据库，性能更优
+```
+
+### 消息已读状态接口
+
+**重要：只标记发送给当前用户的消息**
+
+```python
+# 标记会话中所有消息为已读
+PUT /api/conversations/{conversation_id}/messages/read-all?reader_id={user_id}
+
+# 特性：
+# ✅ 只标记 sender_id != reader_id 的消息（别人发给我的）
+# ✅ 不会标记自己发送的消息
+# ✅ 通过 WebSocket 实时通知对方消息已读
+
+# 标记会话为已读（清零未读计数）
+PUT /api/conversations/{conversation_id}/read?user_id={user_id}
+
+# 特性：
+# ✅ 根据角色清零对应的未读计数
+# ✅ customer_id → customer_unread_count = 0
+# ✅ merchant_id → merchant_unread_count = 0
 ```
 
 ## 🔐 认证流程
