@@ -126,8 +126,15 @@ export const useChatStore = defineStore('chat', () => {
     
     // 管理员查看会话时不标记为已读（只读监控）
     if (currentUser.value?.role !== 'admin') {
-      // 立即标记为已读（会更新数据库和本地状态）
-      await markAsRead(conversation.id)
+      // ✅ 只有当会话有未读消息时才标记为已读
+      const hasUnread = currentUser.value.role === 'buyer' 
+        ? conversation.customer_unread_count > 0 
+        : conversation.merchant_unread_count > 0
+      
+      if (hasUnread) {
+        // 立即标记为已读（会更新数据库和本地状态）
+        await markAsRead(conversation.id)
+      }
     }
     
     // 不需要重新加载会话列表，因为 markAsRead 已经更新了本地的未读计数

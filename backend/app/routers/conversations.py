@@ -189,7 +189,7 @@ async def mark_conversation_messages_as_read(
     reader_id: str = None,  # 添加参数：谁标记的已读
     db: AsyncSession = Depends(get_db)
 ):
-    """标记会话所有消息为已读"""
+    """标记会话中发送给当前用户的所有消息为已读"""
     from ..models import Message
     from ..websocket import manager  # 导入 WebSocket 管理器
     
@@ -201,17 +201,27 @@ async def mark_conversation_messages_as_read(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    # 标记所有消息为已读
-    await db.execute(
-        update(Message)
-        .where(Message.conversation_id == conversation_id)
-        .values(is_read=True)
-    )
-    await db.commit()
-    
-    # 通过 WebSocket 实时通知对方消息已读
+    # ✅ 只标记发送给 reader_id 的消息为已读（即别人发给我的消息）
+    # 不标记 reader_id 自己发送的消息
     if reader_id:
+        await db.execute(
+            update(Message)
+            .where(Message.conversation_id == conversation_id)
+            .where(Message.sender_id != reader_id)  # 关键：排除自己发送的消息
+            .values(is_read=True)
+        )
+        await db.commit()
+        
+        # 通过 WebSocket 实时通知对方消息已读
         await manager.notify_message_read(conversation_id, reader_id)
+    else:
+        # 如果没有提供 reader_id，则标记所有消息（保持向后兼容）
+        await db.execute(
+            update(Message)
+            .where(Message.conversation_id == conversation_id)
+            .values(is_read=True)
+        )
+        await db.commit()
     
     return {"status": "success"}
 
