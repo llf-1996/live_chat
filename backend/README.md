@@ -6,14 +6,19 @@
 
 Python 3.11+ | FastAPI | MySQL + aiomysql | SQLAlchemy (异步) | Alembic | Uvicorn | JWT
 
-## ⚙️ 环境变量（16项必需）
+## ⚙️ 环境变量（21项必需）
 
 **⚠️ 所有配置必需，无默认值！使用 `is None` 验证（`"False"`, `"0"`, `""` 都是有效值）**
 
 ```env
-# 数据库（2项）
+# 数据库（7项）
 DATABASE_URL=mysql+aiomysql://user:pass@host:port/db
 DEBUG_SQL=False
+DB_POOL_PRE_PING=true
+DB_POOL_RECYCLE=1800
+DB_POOL_SIZE=5
+DB_MAX_OVERFLOW=10
+DB_POOL_TIMEOUT=30
 
 # JWT认证（3项）
 JWT_SECRET_KEY=your-secret-key-min-64-chars
@@ -39,6 +44,15 @@ APP_TITLE=在线客服系统
 APP_DESCRIPTION=基于FastAPI和WebSocket的实时在线客服系统
 APP_VERSION=1.0.0
 ```
+
+### 数据库连接池与断连防护说明
+
+调优建议：
+- 云数据库或代理关闭空闲连接较快（如 300~600 秒）时，将 `DB_POOL_RECYCLE` 设置为更小值（如 180~300）。
+- 高并发读取场景增大 `DB_POOL_SIZE` 与 `DB_MAX_OVERFLOW`；严格超时控制可减小 `DB_POOL_TIMEOUT`。
+
+典型错误与解释：
+- `pymysql.err.OperationalError: (2013, 'Lost connection to MySQL server during query')` 表示查询过程中连接被服务器关闭或网络中断。启用 `pool_pre_ping` 与合理的 `pool_recycle` 可避免大多数因空闲连接失效导致的问题。关于连接池容量与溢出限制的详解参见 SQLAlchemy 官方文档（https://sqlalche.me/e/20/e3q8）。
 
 ## 🚀 快速开始
 
