@@ -24,7 +24,12 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    pass
+    id: str = Field(
+        ..., 
+        min_length=1, 
+        max_length=50, 
+        description="用户ID（字符串主键，长度≤50）"
+    )  # 创建用户时必须提供主键ID
 
 
 class UserUpdate(BaseModel):
