@@ -72,11 +72,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { Monitor, User, ChatDotRound, ChatLineRound, UserFilled, Tools } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import RealTimeMonitor from '@/components/admin/RealTimeMonitor.vue'
-import UserManagement from '@/components/admin/UserManagement.vue'
-import ConversationManagement from '@/components/admin/ConversationManagement.vue'
-import MessageManagement from '@/components/admin/MessageManagement.vue'
-import TestUserSetup from '@/components/admin/TestUserSetup.vue'
+import RealTimeMonitor from './RealTimeMonitor.vue'
+import UserManagement from './UserManagement.vue'
+import ConversationManagement from './ConversationManagement.vue'
+import MessageManagement from './MessageManagement.vue'
+import TestUserSetup from './TestUserSetup.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

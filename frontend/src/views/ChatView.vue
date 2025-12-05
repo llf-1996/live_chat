@@ -29,17 +29,10 @@
       <!-- 手机端：单栏显示 + 底部导航 -->
       <div v-if="isMobile" class="mobile-layout">
         <div class="mobile-content">
-          <!-- 左侧：根据角色显示不同列表 -->
-          <MerchantList 
-            v-if="chatStore.currentUser.role === 'buyer'" 
+          <!-- 左侧：会话列表 -->
+          <ConversationList 
             v-show="activePanel === 'list'" 
-            class="merchant-list"
-            @conversation-selected="handleConversationSelected"
-          />
-          <BuyerList 
-            v-else-if="chatStore.currentUser.role === 'merchant'" 
-            v-show="activePanel === 'list'" 
-            class="merchant-list"
+            class="conversation-list"
             @conversation-selected="handleConversationSelected"
           />
 
@@ -70,11 +63,8 @@
 
       <!-- 桌面/平板端：三栏布局 -->
       <div v-else class="main-content">
-        <!-- 左侧：根据角色显示不同列表 -->
-        <!-- 买家：显示商户列表 -->
-        <MerchantList v-if="chatStore.currentUser.role === 'buyer'" class="merchant-list" />
-        <!-- 商户客服：显示买家列表 -->
-        <BuyerList v-else-if="chatStore.currentUser.role === 'merchant'" class="merchant-list" />
+        <!-- 左侧：会话列表 -->
+        <ConversationList class="conversation-list" />
 
         <!-- 中间：聊天窗口 -->
         <ChatWindow ref="chatWindowRef" class="chat-window" />
@@ -89,8 +79,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
-import MerchantList from '@/components/MerchantList.vue'
-import BuyerList from '@/components/BuyerList.vue'
+import ConversationList from '@/components/ConversationList.vue'
 import ChatWindow from '@/components/ChatWindow.vue'
 import OrderPanel from '@/components/OrderPanel.vue'
 import { ChatDotRound, ChatLineRound } from '@element-plus/icons-vue'
@@ -135,7 +124,8 @@ function getRoleLabel(role) {
   const labels = {
     buyer: '客',
     merchant: '商',
-    admin: '平'
+    admin: '平',
+    platform: '服'
   }
   return labels[role] || role
 }
@@ -144,7 +134,8 @@ function getRoleTagType(role) {
   const types = {
     buyer: 'primary',
     merchant: 'success',
-    admin: 'warning'
+    admin: 'warning',
+    platform: 'danger'
   }
   return types[role] || 'info'
 }

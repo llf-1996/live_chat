@@ -81,12 +81,12 @@ async def create_message(message: MessageCreate, db: AsyncSession = Depends(get_
         conversation.updated_at = int(time.time())
         
         # 根据发送者身份，增加对方的未读消息数
-        if message.sender_id == conversation.customer_id:
-            # 客户发送 → 商家的未读数+1
-            conversation.merchant_unread_count += 1
-        else:
-            # 商家发送 → 客户的未读数+1
-            conversation.customer_unread_count += 1
+        if message.sender_id == conversation.participant1_id:
+            # 参与者1发送 → 参与者2的未读数+1
+            conversation.participant2_unread += 1
+        elif message.sender_id == conversation.participant2_id:
+            # 参与者2发送 → 参与者1的未读数+1
+            conversation.participant1_unread += 1
 
     await db.commit()
     await db.refresh(db_message)

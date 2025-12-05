@@ -149,7 +149,8 @@ async def ensure_users(request: UserEnsureRequest, db: AsyncSession = Depends(ge
                 role_name_map = {
                     UserRole.BUYER: "买家",
                     UserRole.MERCHANT: "商家",
-                    UserRole.ADMIN: "管理员"
+                    UserRole.ADMIN: "管理员",
+                    UserRole.PLATFORM: "平台客服"
                 }
                 username = f"{role_name_map.get(user_item.role, '用户')}{timestamp_ms}"
             

@@ -19,23 +19,23 @@
     <!-- 会话列表表格 -->
     <el-table :data="filteredConversations" style="width: 100%" v-loading="loading">
       <el-table-column prop="id" label="会话ID" width="100" />
-      <el-table-column label="客户" min-width="150">
+      <el-table-column label="参与者1" min-width="150">
         <template #default="{ row }">
           <div style="display: flex; align-items: center;">
-            <el-avatar :size="32" :src="row.customer?.avatar" style="margin-right: 8px">
-              {{ row.customer?.username?.charAt(0) }}
+            <el-avatar :size="32" :src="row.participant1?.avatar" style="margin-right: 8px">
+              {{ row.participant1?.username?.charAt(0) }}
             </el-avatar>
-            <span>{{ row.customer?.username }}</span>
+            <span>{{ row.participant1?.username }}</span>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="商户" min-width="150">
+      <el-table-column label="参与者2" min-width="150">
         <template #default="{ row }">
           <div style="display: flex; align-items: center;">
-            <el-avatar :size="32" :src="row.merchant?.avatar" style="margin-right: 8px">
-              {{ row.merchant?.username?.charAt(0) }}
+            <el-avatar :size="32" :src="row.participant2?.avatar" style="margin-right: 8px">
+              {{ row.participant2?.username?.charAt(0) }}
             </el-avatar>
-            <span>{{ row.merchant?.username }}</span>
+            <span>{{ row.participant2?.username }}</span>
           </div>
         </template>
       </el-table-column>
@@ -46,13 +46,13 @@
       </el-table-column>
       <el-table-column label="未读数" width="120">
         <template #default="{ row }">
-          <el-tag v-if="row.customer_unread_count > 0" type="primary" size="small">
-            客户: {{ row.customer_unread_count }}
+          <el-tag v-if="row.participant1_unread > 0" type="primary" size="small">
+            P1: {{ row.participant1_unread }}
           </el-tag>
-          <el-tag v-if="row.merchant_unread_count > 0" type="warning" size="small" style="margin-left: 4px">
-            商户: {{ row.merchant_unread_count }}
+          <el-tag v-if="row.participant2_unread > 0" type="warning" size="small" style="margin-left: 4px">
+            P2: {{ row.participant2_unread }}
           </el-tag>
-          <span v-if="row.customer_unread_count === 0 && row.merchant_unread_count === 0">-</span>
+          <span v-if="row.participant1_unread === 0 && row.participant2_unread === 0">-</span>
         </template>
       </el-table-column>
       <el-table-column label="更新时间" width="180">
@@ -84,27 +84,27 @@
             <el-descriptions-item label="创建时间">
               {{ formatTime(currentConversation.created_at) }}
             </el-descriptions-item>
-            <el-descriptions-item label="客户">
+            <el-descriptions-item label="参与者1">
               <div style="display: flex; align-items: center;">
-                <el-avatar :size="32" :src="currentConversation.customer?.avatar" style="margin-right: 8px">
-                  {{ currentConversation.customer?.username?.charAt(0) }}
+                <el-avatar :size="32" :src="currentConversation.participant1?.avatar" style="margin-right: 8px">
+                  {{ currentConversation.participant1?.username?.charAt(0) }}
                 </el-avatar>
-                <span>{{ currentConversation.customer?.username }}</span>
+                <span>{{ currentConversation.participant1?.username }}</span>
               </div>
             </el-descriptions-item>
-            <el-descriptions-item label="商户">
+            <el-descriptions-item label="参与者2">
               <div style="display: flex; align-items: center;">
-                <el-avatar :size="32" :src="currentConversation.merchant?.avatar" style="margin-right: 8px">
-                  {{ currentConversation.merchant?.username?.charAt(0) }}
+                <el-avatar :size="32" :src="currentConversation.participant2?.avatar" style="margin-right: 8px">
+                  {{ currentConversation.participant2?.username?.charAt(0) }}
                 </el-avatar>
-                <span>{{ currentConversation.merchant?.username }}</span>
+                <span>{{ currentConversation.participant2?.username }}</span>
               </div>
             </el-descriptions-item>
-            <el-descriptions-item label="客户未读数">
-              {{ currentConversation.customer_unread_count }}
+            <el-descriptions-item label="参与者1未读数">
+              {{ currentConversation.participant1_unread }}
             </el-descriptions-item>
-            <el-descriptions-item label="商户未读数">
-              {{ currentConversation.merchant_unread_count }}
+            <el-descriptions-item label="参与者2未读数">
+              {{ currentConversation.participant2_unread }}
             </el-descriptions-item>
             <el-descriptions-item label="消息总数">
               {{ conversationMessages.length }}
@@ -123,7 +123,7 @@
               v-for="message in conversationMessages" 
               :key="message.id"
               class="message-item"
-              :class="{ 'is-customer': message.sender_id === currentConversation.customer_id }"
+              :class="{ 'is-customer': message.sender_id === currentConversation.participant1_id }"
             >
               <div class="message-header">
                 <el-avatar :size="28" :src="message.sender?.avatar">
@@ -164,8 +164,8 @@ const filteredConversations = computed(() => {
   }
   const keyword = searchKeyword.value.toLowerCase()
   return conversations.value.filter(conv =>
-    conv.customer?.username.toLowerCase().includes(keyword) ||
-    conv.merchant?.username.toLowerCase().includes(keyword)
+    conv.participant1?.username.toLowerCase().includes(keyword) ||
+    conv.participant2?.username.toLowerCase().includes(keyword)
   )
 })
 

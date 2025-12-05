@@ -258,7 +258,8 @@ function getRoleLabel(role) {
   const roleMap = {
     buyer: '买家',
     merchant: '商户',
-    admin: '管理员'
+    admin: '管理员',
+    platform: '平台客服'
   }
   return roleMap[role] || role
 }
@@ -267,7 +268,8 @@ function getRoleTagType(role) {
   const typeMap = {
     buyer: 'primary',
     merchant: 'warning',
-    admin: 'danger'
+    admin: 'danger',
+    platform: 'success'
   }
   return typeMap[role] || 'info'
 }

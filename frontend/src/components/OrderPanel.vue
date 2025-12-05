@@ -2,7 +2,7 @@
   <div class="order-panel-container">
     <!-- 标签页 -->
     <el-tabs v-model="activeTab" class="tabs">
-      <el-tab-pane label="历史订单" name="orders">
+      <el-tab-pane label="历史订单" name="orders" v-if="mockOrders.length > 0">
         <!-- 订单列表 -->
         <div v-if="currentConversation && mockOrders.length > 0" class="orders-list">
           <div
@@ -48,25 +48,29 @@
         <el-empty v-else description="暂无历史订单" :image-size="120" />
       </el-tab-pane>
 
-      <el-tab-pane label="商家信息" name="merchant">
+      <el-tab-pane label="对方信息" name="info">
         <div v-if="currentConversation" class="merchant-detail">
           <div class="merchant-avatar-section">
-            <el-avatar :size="80" :src="currentConversation.merchant?.avatar">
-              {{ currentConversation.merchant?.username?.charAt(0).toUpperCase() }}
+            <el-avatar :size="80" :src="otherParticipant.avatar">
+              {{ otherParticipant.username?.charAt(0).toUpperCase() }}
             </el-avatar>
           </div>
 
           <div class="merchant-name-section">
-            {{ currentConversation.merchant?.username }}
+            {{ otherParticipant.username }}
+            <el-tag v-if="otherParticipant.role === 'merchant'" size="small" type="warning" style="margin-left: 8px">商户</el-tag>
+            <el-tag v-else-if="otherParticipant.role === 'buyer'" size="small" type="primary" style="margin-left: 8px">买家</el-tag>
+            <el-tag v-else-if="otherParticipant.role === 'platform'" size="small" type="success" style="margin-left: 8px">平台客服</el-tag>
+            <el-tag v-else-if="otherParticipant.role === 'admin'" size="small" type="danger" style="margin-left: 8px">管理员</el-tag>
           </div>
 
           <div class="merchant-desc">
-            {{ currentConversation.merchant?.description || '暂无描述' }}
+            {{ otherParticipant.description || '暂无描述' }}
           </div>
 
           <el-divider />
 
-          <div class="merchant-stats">
+          <div v-if="false && otherParticipant.role === 'merchant'" class="merchant-stats">
             <div class="stat-item">
               <div class="stat-value">4.8</div>
               <div class="stat-label">服务评分</div>
@@ -82,7 +86,7 @@
           </div>
         </div>
 
-        <el-empty v-else description="请选择商户查看信息" :image-size="120" />
+        <el-empty v-else description="请选择会话查看信息" :image-size="120" />
       </el-tab-pane>
 
       <!-- 快捷消息（管理员不可使用，只读权限） -->
@@ -170,10 +174,26 @@ import api from '@/api/chat'
 const emit = defineEmits(['use-quick-reply'])
 
 const chatStore = useChatStore()
-const activeTab = ref('orders')
+const activeTab = ref('quickReplies')
 
 const currentConversation = computed(() => chatStore.currentConversation)
 const quickReplies = computed(() => chatStore.quickReplies)
+
+// 计算对方参与者信息
+const otherParticipant = computed(() => {
+  if (!currentConversation.value || !chatStore.currentUser) return {}
+  
+  const { participant1_id, participant1, participant2 } = currentConversation.value
+  
+  // 如果当前用户是 participant1，对方就是 participant2
+  if (chatStore.currentUser.id === participant1_id) {
+    return participant2 || {}
+  } 
+  // 否则对方是 participant1
+  else {
+    return participant1 || {}
+  }
+})
 
 // 检查当前用户是否是管理员（只读权限）
 const isAdmin = computed(() => chatStore.currentUser.role === 'admin')
@@ -183,20 +203,20 @@ const placeholderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/200
 
 // 模拟订单数据列表
 const mockOrders = ref([
-  {
-    orderNo: '2125071660152772',
-    orderTime: '2025-07-16 10:02:34',
-    amount: '299.97',
-    productCount: 1,
-    productImage: placeholderImage
-  },
-  {
-    orderNo: '2125071263448015',
-    orderTime: '2025-07-12 18:19:31',
-    amount: '138.27',
-    productCount: 1,
-    productImage: placeholderImage
-  }
+  // {
+  //   orderNo: '2125071660152772',
+  //   orderTime: '2025-07-16 10:02:34',
+  //   amount: '299.97',
+  //   productCount: 1,
+  //   productImage: placeholderImage
+  // },
+  // {
+  //   orderNo: '2125071263448015',
+  //   orderTime: '2025-07-12 18:19:31',
+  //   amount: '138.27',
+  //   productCount: 1,
+  //   productImage: placeholderImage
+  // }
 ])
 
 // 快捷消息管理

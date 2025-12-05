@@ -6,7 +6,8 @@ from pathlib import Path
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlalchemy import text
-
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
+from sqlalchemy import Enum as SA_ENUM
 from alembic import context
 
 # 添加项目根目录到 Python 路径
@@ -52,6 +53,15 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def mig_compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):
+    # 检查是否是ENUM类型
+    if isinstance(metadata_type, (PG_ENUM, SA_ENUM)) and isinstance(inspected_type, (PG_ENUM, SA_ENUM)):
+        # 比较枚举值是否相同
+        if set(metadata_type.enums) != set(inspected_type.enums):
+            return True  # 告诉alembic这里有变化
+    return True
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -94,6 +104,8 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            compare_type=mig_compare_type,  # 启用类型变更检测（包括 ENUM 变更）
+            compare_server_default=True,  # 启用默认值变更检测
         )
 
         with context.begin_transaction():

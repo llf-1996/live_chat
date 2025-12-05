@@ -1,46 +1,35 @@
-<template>
+ <template>
   <div class="chat-window-container">
     <!-- 顶部信息栏 -->
     <div v-if="currentConversation" class="chat-header">
-      <!-- 买家视图：显示商家信息 -->
-      <template v-if="chatStore.currentUser.role === 'buyer'">
-        <div class="merchant-badge">店铺</div>
-        <span class="merchant-name">{{ currentConversation.merchant?.username }}</span>
+      <!-- 非管理员视图：显示对方信息 -->
+      <template v-if="chatStore.currentUser.role !== 'admin'">
+        <div class="merchant-badge">{{ otherParticipant.role === 'merchant' ? '店铺' : '用户' }}</div>
+        <span class="merchant-name">{{ otherParticipant.username }}</span>
         <span 
           class="header-online-status"
-          :class="{ 'is-online': chatStore.isUserOnline(currentConversation.merchant_id) }"
+          :class="{ 'is-online': chatStore.isUserOnline(otherParticipant.id) }"
         >
-          {{ chatStore.isUserOnline(currentConversation.merchant_id) ? '在线' : '离线' }}
-        </span>
-      </template>
-      <!-- 商家视图：显示客户信息 -->
-      <template v-else-if="chatStore.currentUser.role === 'merchant'">
-        <div class="merchant-badge">客户</div>
-        <span class="merchant-name">{{ currentConversation.customer?.username }}</span>
-        <span 
-          class="header-online-status"
-          :class="{ 'is-online': chatStore.isUserOnline(currentConversation.customer_id) }"
-        >
-          {{ chatStore.isUserOnline(currentConversation.customer_id) ? '在线' : '离线' }}
+          {{ chatStore.isUserOnline(otherParticipant.id) ? '在线' : '离线' }}
         </span>
       </template>
       <!-- 管理员视图：显示双方信息 -->
-      <template v-else-if="chatStore.currentUser.role === 'admin'">
+      <template v-else>
         <div class="merchant-badge admin-badge">监控</div>
         <span class="conversation-parties">
           <span class="party-customer">
-            {{ currentConversation.customer?.username }}
+            {{ currentConversation.participant1?.username }}
             <span 
               class="inline-status-dot"
-              :class="{ 'is-online': chatStore.isUserOnline(currentConversation.customer_id) }"
+              :class="{ 'is-online': chatStore.isUserOnline(currentConversation.participant1_id) }"
             ></span>
           </span>
           <el-icon :size="14" class="party-arrow"><Right /></el-icon>
           <span class="party-merchant">
-            {{ currentConversation.merchant?.username }}
+            {{ currentConversation.participant2?.username }}
             <span 
               class="inline-status-dot"
-              :class="{ 'is-online': chatStore.isUserOnline(currentConversation.merchant_id) }"
+              :class="{ 'is-online': chatStore.isUserOnline(currentConversation.participant2_id) }"
             ></span>
           </span>
         </span>
@@ -122,7 +111,7 @@
 <script setup>
 import { computed, watch, nextTick, ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
-import MessageInput from '@/components/MessageInput.vue'
+import MessageInput from './MessageInput.vue'
 import { Document, Right, Select, Loading } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()
@@ -145,25 +134,37 @@ defineExpose({
 const currentConversation = computed(() => chatStore.currentConversation)
 const messages = computed(() => chatStore.messages)
 
+// 计算对方参与者信息
+const otherParticipant = computed(() => {
+  if (!currentConversation.value || !chatStore.currentUser) return {}
+  
+  const { participant1_id, participant1, participant2 } = currentConversation.value
+  
+  // 如果当前用户是 participant1，对方就是 participant2
+  if (chatStore.currentUser.id === participant1_id) {
+    return participant2 || {}
+  } 
+  // 否则对方是 participant1
+  else {
+    return participant1 || {}
+  }
+})
+
 // 获取头像图片URL（优先使用图片）
 function getAvatarUrl(senderId) {
   if (senderId === chatStore.currentUser.id) {
     return chatStore.currentUser.avatar || undefined
   }
   
-  if (chatStore.currentUser.role === 'admin') {
-    if (senderId === currentConversation.value?.customer_id) {
-      return currentConversation.value?.customer?.avatar || undefined
-    } else if (senderId === currentConversation.value?.merchant_id) {
-      return currentConversation.value?.merchant?.avatar || undefined
+  // 在会话中查找对方信息
+  if (currentConversation.value) {
+    if (senderId === currentConversation.value.participant1_id) {
+      return currentConversation.value.participant1?.avatar || undefined
+    } else if (senderId === currentConversation.value.participant2_id) {
+      return currentConversation.value.participant2?.avatar || undefined
     }
   }
-  
-  if (chatStore.currentUser.role === 'buyer') {
-    return currentConversation.value?.merchant?.avatar || undefined
-  } else {
-    return currentConversation.value?.customer?.avatar || undefined
-  }
+  return undefined
 }
 
 // 获取头像显示文字（用户名首字母或角色标识）
@@ -180,19 +181,21 @@ function getAvatarStyle(senderId) {
   if (senderId === chatStore.currentUser.id) {
     // 自己的消息：绿色
     bgColor = '#67C23A'
-  } else if (chatStore.currentUser.role === 'admin') {
-    // 管理员视图：客户蓝色，商户橙色
-    if (senderId === currentConversation.value?.customer_id) {
-      bgColor = '#5B8FF9' // 客户蓝色
-    } else if (senderId === currentConversation.value?.merchant_id) {
-      bgColor = '#FA8C16' // 商户橙色
-    }
-  } else if (chatStore.currentUser.role === 'buyer') {
-    // 买家视图：商户橙色
-    bgColor = '#FA8C16'
-  } else if (chatStore.currentUser.role === 'merchant') {
-    // 商户视图：客户蓝色
-    bgColor = '#5B8FF9'
+  } else {
+      // 尝试获取发送者的角色
+      let role = null
+      if (currentConversation.value) {
+          if (senderId === currentConversation.value.participant1_id) {
+              role = currentConversation.value.participant1?.role
+          } else if (senderId === currentConversation.value.participant2_id) {
+              role = currentConversation.value.participant2?.role
+          }
+      }
+      
+      if (role === 'buyer') bgColor = '#5B8FF9'
+      else if (role === 'merchant') bgColor = '#FA8C16'
+      else if (role === 'admin') bgColor = '#E6A23C'
+      else if (role === 'platform') bgColor = '#F5222D'
   }
   
   return {
@@ -207,21 +210,14 @@ function getSenderName(senderId) {
     return chatStore.currentUser.username
   }
   
-  // 管理员：根据发送者ID判断是客户还是商户
-  if (chatStore.currentUser.role === 'admin') {
-    if (senderId === currentConversation.value?.customer_id) {
-      return currentConversation.value?.customer?.username || '客户'
-    } else if (senderId === currentConversation.value?.merchant_id) {
-      return currentConversation.value?.merchant?.username || '商户'
+  if (currentConversation.value) {
+    if (senderId === currentConversation.value.participant1_id) {
+      return currentConversation.value.participant1?.username || '用户'
+    } else if (senderId === currentConversation.value.participant2_id) {
+      return currentConversation.value.participant2?.username || '用户'
     }
   }
-  
-  // 买家/商家：根据角色返回对方名称
-  if (chatStore.currentUser.role === 'buyer') {
-    return currentConversation.value?.merchant?.username || '商家'
-  } else {
-    return currentConversation.value?.customer?.username || '客户'
-  }
+  return '用户'
 }
 
 function getEmptyDescription() {

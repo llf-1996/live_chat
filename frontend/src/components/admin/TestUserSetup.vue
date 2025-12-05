@@ -39,6 +39,7 @@
                   <el-select v-model="user.role" placeholder="请选择角色">
                     <el-option label="买家 (Buyer)" value="buyer" />
                     <el-option label="商家 (Merchant)" value="merchant" />
+                    <el-option label="平台客服 (Platform)" value="platform" />
                     <el-option label="管理员 (Admin)" value="admin" />
                   </el-select>
                 </el-form-item>
@@ -95,6 +96,9 @@
         </el-button>
         <el-button @click="quickFillMultiple" type="success" plain>
           b1, b2, m1, m2
+        </el-button>
+        <el-button @click="quickFillService" type="warning" plain>
+          s1 (平台客服) + b1 (买家)
         </el-button>
       </div>
 
@@ -165,6 +169,7 @@
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api/chat'
+import { openChatPage } from '@/utils'
 
 // 用户列表
 const users = ref([
@@ -231,13 +236,22 @@ const quickFillB2M1 = () => {
 
 const quickFillMultiple = () => {
   users.value = [
-    { id: 'b1', role: 'buyer', username: '', avatar: '', description: '' },
-    { id: 'b2', role: 'buyer', username: '', avatar: '', description: '' },
-    { id: 'm1', role: 'merchant', username: '', avatar: '', description: '' },
-    { id: 'm2', role: 'merchant', username: '', avatar: '', description: '' }
+    { id: 'b1', role: 'buyer', username: '买家1', avatar: '', description: '活跃买家' },
+    { id: 'b2', role: 'buyer', username: '买家2', avatar: '', description: '新注册买家' },
+    { id: 'm1', role: 'merchant', username: '金牌商家', avatar: '', description: '主要供应商' },
+    { id: 'm2', role: 'merchant', username: '普通商家', avatar: '', description: '' }
   ]
   redirectUserId.value = 'b1'
-  redirectTargetUserId.value = 'm2'
+  redirectTargetUserId.value = 'm1'
+}
+
+const quickFillService = () => {
+  users.value = [
+    { id: 's1', role: 'platform', username: '平台客服1', avatar: '', description: '官方客服' },
+    { id: 'b1', role: 'buyer', username: '买家1', avatar: '', description: '' }
+  ]
+  redirectUserId.value = 'b1'
+  redirectTargetUserId.value = 's1'
 }
 
 // 获取角色名称
@@ -281,29 +295,18 @@ const handleSubmit = async () => {
       return userData
     })
 
-    // 调用接口创建用户
-    const createdUsers = await api.ensureUsers(usersToCreate)
-    console.log('用户创建成功:', createdUsers)
-    
-    // 验证跳转所需的用户是否都创建成功
-    const userIds = createdUsers.map(u => u.id)
-    if (!userIds.includes(redirectUserId.value)) {
-      error.value = `用户 ${redirectUserId.value} 创建失败，请重试`
-      return
-    }
-    if (!userIds.includes(redirectTargetUserId.value)) {
-      error.value = `用户 ${redirectTargetUserId.value} 创建失败，请重试`
-      return
-    }
+    // 使用封装的方法创建用户并打开聊天页面
+    const chatUrl = await openChatPage(
+      usersToCreate, 
+      redirectUserId.value, 
+      redirectTargetUserId.value
+    )
     
     success.value = '用户创建成功！正在打开聊天页面...'
     ElMessage.success('用户创建成功')
     
     // 延迟打开（增加延迟确保数据库写入完成）
     setTimeout(() => {
-      // 构造完整的 URL
-      const chatUrl = `/chat?user_id=${redirectUserId.value}&target_user_id=${redirectTargetUserId.value}`
-      
       // 在新标签页打开
       window.open(chatUrl, '_blank')
       

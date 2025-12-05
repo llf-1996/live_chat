@@ -105,8 +105,8 @@ class MessageResponse(MessageBase):
 
 # ===== Conversation Schemas =====
 class ConversationBase(BaseModel):
-    customer_id: str  # 客户ID（role=buyer）字符串类型
-    merchant_id: str  # 商家ID（role=merchant）字符串类型
+    participant1_id: str = Field(..., description="参与者1 ID")
+    participant2_id: str = Field(..., description="参与者2 ID")
 
 
 class ConversationCreate(ConversationBase):
@@ -115,22 +115,21 @@ class ConversationCreate(ConversationBase):
 
 class ConversationResponse(ConversationBase):
     id: int
-    customer_unread_count: int  # 客户的未读消息数
-    merchant_unread_count: int  # 商家的未读消息数
+    participant1_unread: int = 0
+    participant2_unread: int = 0
     last_message: Optional[str] = None
     last_message_time: Optional[int] = None  # 时间戳
     created_at: int  # 时间戳
     updated_at: int  # 时间戳
-    customer: Optional[UserResponse] = None  # 客户信息
-    merchant: Optional[UserResponse] = None  # 商家信息
+    participant1: Optional[UserResponse] = None
+    participant2: Optional[UserResponse] = None
 
     class Config:
         from_attributes = True
 
 
 class ConversationDetail(ConversationResponse):
-    message_count: int  # 消息总数
-    messages: Optional[List['MessageResponse']] = None  # 消息列表（可选）
+    messages: List[MessageResponse] = []
 
 
 # ===== Quick Reply Schemas =====

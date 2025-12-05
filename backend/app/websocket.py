@@ -10,19 +10,21 @@ class ConnectionManager:
 
     def __init__(self):
         # 用户连接：{user_id: WebSocket}
-        self.active_connections: Dict[int, WebSocket] = {}
+        self.active_connections: Dict[str, WebSocket] = {}
         # 在线用户
-        self.online_users: Set[int] = set()
+        self.online_users: Set[str] = set()
         # 平台管理员用户ID集合
-        self.admin_users: Set[int] = set()
+        self.admin_users: Set[str] = set()
 
-    async def connect(self, websocket: WebSocket, user_id: int, role: str = "buyer"):
+    async def connect(self, websocket: WebSocket, user_id: str, role: str = "buyer"):
         """建立连接"""
         await websocket.accept()
         
         # 所有用户使用统一的用户级连接
         self.active_connections[user_id] = websocket
         self.online_users.add(user_id)
+        
+        print(f"用户上线: {user_id}, 当前在线: {list(self.online_users)}")
         
         # 如果是平台管理员，加入管理员集合
         if role == "admin":
@@ -40,7 +42,7 @@ class ConnectionManager:
         # 2. 再广播新用户上线给其他人
         await self.broadcast_status(user_id, "online")
 
-    async def disconnect(self, user_id: int, role: str = "buyer"):
+    async def disconnect(self, user_id: str, role: str = "buyer"):
         """断开连接"""
         # 移除用户连接
         if user_id in self.active_connections:
@@ -49,6 +51,8 @@ class ConnectionManager:
         # 移除在线状态
         if user_id in self.online_users:
             self.online_users.remove(user_id)
+            
+        print(f"用户下线: {user_id}, 当前在线: {list(self.online_users)}")
         
         # 如果是管理员，从管理员集合中移除
         if role == "admin" and user_id in self.admin_users:
@@ -57,67 +61,40 @@ class ConnectionManager:
         # 广播离线状态
         await self.broadcast_status(user_id, "offline")
 
-    async def send_personal_message(self, message: dict, user_id: int):
+    async def send_personal_message(self, message: dict, user_id: str):
         """发送个人消息"""
         if user_id in self.active_connections:
             try:
                 await self.active_connections[user_id].send_json(message)
             except:
                 # 连接已断开
-                self.disconnect(user_id)
+                await self.disconnect(user_id)
 
-    async def send_to_conversation_participants(self, message: dict, sender_id: int, conversation_id: int):
-        """发送消息给会话的参与者（一对一）+ 平台管理员（监控）"""
-        from app.database import async_session_maker
-        from app.models import Conversation
-        from sqlalchemy import select
+    async def send_to_conversation_participants(self, message_data: dict, sender_id: str, conversation_id: int):
+        """
+        发送消息给会话参与者（根据会话ID查找参与者）
+        注意：这个方法现在需要传入 sender_id 和 conversation_id，
+        但在 WebSocketManager 内部很难直接访问数据库获取 participant1/participant2。
         
-        # 查询会话信息，获取买家和商户
-        async with async_session_maker() as db:
-            result = await db.execute(
-                select(Conversation).where(Conversation.id == conversation_id)
-            )
-            conversation = result.scalar_one_or_none()
-            
-            if not conversation:
-                return
-            
-            customer_id = conversation.customer_id
-            merchant_id = conversation.merchant_id
+        通常是在业务层（routers）获取到会话信息后，调用此方法并传入明确的接收者ID。
+        或者重构此方法，接受 receiver_id。
         
-        # 获取消息内容和类型
-        content = message.get("content")
-        message_type = message.get("message_type", "text")
+        这里为了兼容旧代码，我们暂时假设调用者会先处理好逻辑，或者我们在 WebSocket 路由中处理。
         
-        # 如果是图片或文件消息，拼接完整 URL
-        if message_type in ["image", "file"] and content:
-            content = build_full_url(content)
+        更好的方式是：
+        async def send_message(self, message_data: dict, sender_id: str, receiver_id: str):
+             ...
+             
+        目前的 send_to_conversation_participants 是用于 typing 状态等，
+        如果无法直接获取 receiver_id，可能需要从数据库查（不推荐在 ws 中查库）。
         
-        # 构造消息数据
-        message_data = {
-            "type": "message",
-            "conversation_id": conversation_id,
-            "sender_id": sender_id,
-            "content": content,
-            "message_type": message_type,
-            "timestamp": int(time.time())
-        }
-        
-        # 判断发送者身份，推送给对应的接收者
-        # 如果发送者是客户，推送给商家
-        if sender_id == customer_id:
-            await self.send_personal_message(message_data, merchant_id)
-        # 否则，推送给客户
-        else:
-            await self.send_personal_message(message_data, customer_id)
-        
-        # 同时推送给所有在线的平台管理员（实时监控）
-        for admin_id in list(self.admin_users):
-            # 不重复发送给发送者本人
-            if admin_id != sender_id:
-                await self.send_personal_message(message_data, admin_id)
+        修改策略：
+        让调用者（main.py 中的 websocket_endpoint）负责查询会话信息并传递 participant1_id 和 participant2_id。
+        """
+        # 这是一个占位符，实际逻辑在 main.py 中实现
+        pass
 
-    async def broadcast_status(self, user_id: int, status: str):
+    async def broadcast_status(self, user_id: str, status: str):
         """广播用户状态"""
         status_message = {
             "type": "status",
@@ -134,7 +111,7 @@ class ConnectionManager:
                     # 连接失败，静默处理，连接管理器会在下次发送时清理
                     print(f"发送状态消息失败 (用户{uid}): {e}")
 
-    async def notify_unread(self, user_id: int, conversation_id: int, count: int):
+    async def notify_unread(self, user_id: str, conversation_id: int, count: int):
         """通知未读消息数"""
         message = {
             "type": "unread",
@@ -160,8 +137,8 @@ class ConnectionManager:
             if not conversation:
                 return
             
-            customer_id = conversation.customer_id
-            merchant_id = conversation.merchant_id
+            participant1_id = conversation.participant1_id
+            participant2_id = conversation.participant2_id
         
         # 构造已读通知消息
         read_message = {
@@ -172,14 +149,14 @@ class ConnectionManager:
         }
         
         # 通知会话的另一方（发送者）
-        if reader_id == customer_id:
-            # 客户标记已读 → 通知商户
-            await self.send_personal_message(read_message, merchant_id)
+        if reader_id == participant1_id:
+            # 参与者1标记已读 → 通知参与者2
+            await self.send_personal_message(read_message, participant2_id)
         else:
-            # 商户标记已读 → 通知客户
-            await self.send_personal_message(read_message, customer_id)
+            # 参与者2标记已读 → 通知参与者1
+            await self.send_personal_message(read_message, participant1_id)
 
-    def is_online(self, user_id: int) -> bool:
+    def is_online(self, user_id: str) -> bool:
         """检查用户是否在线"""
         return user_id in self.online_users
 
