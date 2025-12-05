@@ -70,7 +70,7 @@ async def initialize_data():
                 id="p1",
                 username="官方客服",
                 avatar="/api/media/avatars/service.png",
-                role=UserRole.MERCHANT,
+                role=UserRole.PLATFORM,
                 description="官方客服"
             ),
             # 客户/买家(2个)
@@ -297,51 +297,108 @@ async def websocket_endpoint(
             message_type = message.get("type")
 
             if message_type == "message":
-                # 发送消息给会话参与者（一对一）
-                await manager.send_to_conversation_participants(
-                    message,
-                    sender_id=user_id,
-                    conversation_id=message.get("conversation_id")
-                )
+                conversation_id = message.get("conversation_id")
+                content = message.get("content")
+                msg_content_type = message.get("message_type", "text")
+
+                # 获取会话信息以确定接收者
+                from sqlalchemy import select
+                from app.models import Conversation
+                import time
+
+                async with async_session_maker() as db:
+                    result = await db.execute(
+                        select(Conversation).where(Conversation.id == conversation_id)
+                    )
+                    conversation = result.scalar_one_or_none()
+                    
+                    if conversation:
+                        # 确定参与者
+                        participant1_id = conversation.participant1_id
+                        participant2_id = conversation.participant2_id
+                        
+                        # 构造消息数据
+                        message_data = {
+                            "type": "message",
+                            "conversation_id": conversation_id,
+                            "sender_id": user_id,
+                            "content": content,
+                            "message_type": msg_content_type,
+                            "timestamp": int(time.time())
+                        }
+                        
+                        # 发送给对方
+                        if user_id == participant1_id:
+                            await manager.send_personal_message(message_data, participant2_id)
+                        else:
+                            await manager.send_personal_message(message_data, participant1_id)
+                            
+                        # 发送给所有管理员
+                        for admin_id in list(manager.admin_users):
+                            if admin_id != user_id:
+                                await manager.send_personal_message(message_data, admin_id)
 
             elif message_type == "read":
-                # 标记已读
+                # 标记消息已读
                 conversation_id = message.get("conversation_id")
                 if conversation_id:
+                    from sqlalchemy import select
                     from app.models import Conversation, Message
-                    from app.database import async_session_maker
                     from sqlalchemy import update
 
                     async with async_session_maker() as db:
                         # 更新会话未读数
-                        await db.execute(
-                            update(Conversation)
-                            .where(Conversation.id == conversation_id)
-                            .values(unread_count=0)
+                        # 需要根据 user_id 判断是清空 participant1_unread 还是 participant2_unread
+                        result = await db.execute(
+                            select(Conversation).where(Conversation.id == conversation_id)
                         )
-                        # 标记消息为已读
-                        await db.execute(
-                            update(Message)
-                            .where(Message.conversation_id == conversation_id)
-                            .values(is_read=True)
-                        )
-                        await db.commit()
+                        conversation = result.scalar_one_or_none()
+                        
+                        if conversation:
+                            if conversation.participant1_id == user_id:
+                                conversation.participant1_unread = 0
+                            elif conversation.participant2_id == user_id:
+                                conversation.participant2_unread = 0
+                            
+                            # 标记消息为已读
+                            await db.execute(
+                                update(Message)
+                                .where(Message.conversation_id == conversation_id)
+                                .where(Message.sender_id != user_id) # 只标记对方发的消息
+                                .values(is_read=True)
+                            )
+                            await db.commit()
 
             elif message_type == "typing":
                 # 发送输入状态给会话参与者
                 conversation_id = message.get("conversation_id")
                 if conversation_id:
-                    typing_message = {
-                        "type": "typing",
-                        "user_id": user_id,
-                        "conversation_id": conversation_id,
-                        "is_typing": message.get("is_typing", True)
-                    }
-                    await manager.send_to_conversation_participants(
-                        typing_message,
-                        sender_id=user_id,
-                        conversation_id=conversation_id
-                    )
+                    # 获取会话信息以确定接收者
+                    from sqlalchemy import select
+                    from app.models import Conversation
+
+                    async with async_session_maker() as db:
+                        result = await db.execute(
+                            select(Conversation).where(Conversation.id == conversation_id)
+                        )
+                        conversation = result.scalar_one_or_none()
+                        
+                        if conversation:
+                            participant1_id = conversation.participant1_id
+                            participant2_id = conversation.participant2_id
+                            
+                            typing_message = {
+                                "type": "typing",
+                                "user_id": user_id,
+                                "conversation_id": conversation_id,
+                                "is_typing": message.get("is_typing", True)
+                            }
+                            
+                            # 发送给对方
+                            if user_id == participant1_id:
+                                await manager.send_personal_message(typing_message, participant2_id)
+                            else:
+                                await manager.send_personal_message(typing_message, participant1_id)
 
     except WebSocketDisconnect:
         await manager.disconnect(user_id, role)

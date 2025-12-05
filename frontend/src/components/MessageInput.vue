@@ -82,7 +82,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { ElMessage } from 'element-plus'
 import { Folder, Picture, MoreFilled } from '@element-plus/icons-vue'
-import OrderPanel from '@/components/OrderPanel.vue'
+import OrderPanel from './OrderPanel.vue'
 import api from '@/api/chat'
 import { filterSensitiveWords } from '@/utils'
 

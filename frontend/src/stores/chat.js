@@ -39,12 +39,14 @@ export const useChatStore = defineStore('chat', () => {
 
   // 计算属性
   const totalUnreadCount = computed(() => {
-    // 根据角色返回对应的未读数总和
-    if (currentUser.value.role === 'buyer') {
-      return conversations.value.reduce((sum, conv) => sum + (conv.customer_unread_count || 0), 0)
-    } else {
-      return conversations.value.reduce((sum, conv) => sum + (conv.merchant_unread_count || 0), 0)
-    }
+    // 遍历所有会话，根据自己在会话中的角色累加未读数
+    return conversations.value.reduce((sum, conv) => {
+      if (conv.participant1_id === currentUser.value.id) {
+        return sum + (conv.participant1_unread || 0)
+      } else {
+        return sum + (conv.participant2_unread || 0)
+      }
+    }, 0)
   })
 
   // 方法
@@ -97,17 +99,13 @@ export const useChatStore = defineStore('chat', () => {
     }
     
     try {
-      const params = {}
+      let params = {}
       
-      // 根据角色加载不同的会话
-      if (currentUser.value.role === 'buyer') {
-        // 买家：加载自己的会话
-        params.customer_id = currentUser.value.id
-      } else if (currentUser.value.role === 'merchant') {
-        // 商家：加载该商家的所有会话
-        params.merchant_id = currentUser.value.id
+      // 如果不是管理员，只加载当前用户参与的会话
+      if (currentUser.value?.role !== 'admin') {
+        params.user_id = currentUser.value.id
       }
-      // 管理员：加载所有会话（不传参数）
+      // 管理员不传 user_id，后端会返回所有会话
       
       const response = await api.getConversations(params)
       conversations.value = response.results || []
@@ -127,9 +125,11 @@ export const useChatStore = defineStore('chat', () => {
     // 管理员查看会话时不标记为已读（只读监控）
     if (currentUser.value?.role !== 'admin') {
       // ✅ 只有当会话有未读消息时才标记为已读
-      const hasUnread = currentUser.value.role === 'buyer' 
-        ? conversation.customer_unread_count > 0 
-        : conversation.merchant_unread_count > 0
+      // 动态判断：如果我是 participant1，检查 participant1_unread
+      const isParticipant1 = conversation.participant1_id === currentUser.value.id
+      const hasUnread = isParticipant1 
+        ? conversation.participant1_unread > 0 
+        : conversation.participant2_unread > 0
       
       if (hasUnread) {
         // 立即标记为已读（会更新数据库和本地状态）
@@ -251,11 +251,11 @@ export const useChatStore = defineStore('chat', () => {
       // ✅ 立即更新本地会话列表的未读计数
       const conv = conversations.value.find(c => c.id === conversationId)
       if (conv) {
-        // 根据角色清零对应的未读数
-        if (currentUser.value.role === 'buyer') {
-          conv.customer_unread_count = 0
+        // 根据我在会话中的角色清零对应的未读数
+        if (conv.participant1_id === currentUser.value.id) {
+          conv.participant1_unread = 0
         } else {
-          conv.merchant_unread_count = 0
+          conv.participant2_unread = 0
         }
       }
       
@@ -287,25 +287,18 @@ export const useChatStore = defineStore('chat', () => {
     try {
       console.log(`尝试打开与用户${targetId}的会话`)
       
-      // 根据当前用户角色，确定会话的customer_id和merchant_id
-      let conversationData
-      if (currentUser.value.role === 'buyer') {
-        // 买家：target是merchant_id
-        conversationData = {
-          customer_id: currentUser.value.id,
-          merchant_id: targetId
-        }
-      } else if (currentUser.value.role === 'merchant') {
-        // 商家：target是customer_id
-        conversationData = {
-          customer_id: targetId,
-          merchant_id: currentUser.value.id
-        }
-      } else {
-        // 管理员：暂不支持自动打开
-        console.log('管理员角色暂不支持自动打开对话')
-        return
-      }
+      // 先获取目标用户信息以确定角色
+       const targetUser = await api.getUser(targetId)
+       
+       // 确定 participant1_id 和 participant2_id
+       // 约定：participant1 是发起方/客户方，participant2 是接收方/服务方
+       // 或者简单地：participant1_id = currentUser.value.id, participant2_id = targetId
+       // 后端会自动处理 (p1, p2) 和 (p2, p1) 的一致性
+       
+       const conversationData = {
+         participant1_id: currentUser.value.id,
+         participant2_id: targetId
+       }
       
       // 创建或获取会话
       console.log('正在创建/获取会话...', conversationData)
@@ -314,30 +307,17 @@ export const useChatStore = defineStore('chat', () => {
       
       // 重新加载会话列表（确保新创建的会话出现在列表中）
       await loadConversations()
-      console.log('会话列表已重新加载，当前会话数:', conversations.value.length)
       
       // 从重新加载的会话列表中找到对应的会话
-      // 这样确保使用的是列表中的对象，避免引用不一致的问题
       const foundConversation = conversations.value.find(c => c.id === conversation.id)
       if (foundConversation) {
-        console.log('从会话列表中找到目标会话，准备选中')
         await selectConversation(foundConversation)
       } else {
-        console.warn('未在会话列表中找到目标会话，使用API返回的对象')
         await selectConversation(conversation)
       }
-      
-      console.log('已成功打开会话:', conversation.id)
     } catch (error) {
       console.error('打开会话失败:', error)
-      // 给用户友好的错误提示
-      const errorMsg = error.response?.data?.detail || '打开会话失败，请确认用户已创建或刷新页面重试'
-      if (typeof ElMessage !== 'undefined') {
-        ElMessage.error(errorMsg)
-      } else {
-        alert(errorMsg)
-      }
-      throw error  // 抛出错误以便上层处理
+      throw error
     }
   }
 
@@ -389,16 +369,10 @@ export const useChatStore = defineStore('chat', () => {
     try {
       console.log(`从会话列表中选中用户${targetUserId}的会话`)
       
-      // 根据当前用户角色，从会话列表中查找对应的会话
+      // 根据目标用户ID查找会话
       const conversation = conversations.value.find(conv => {
-        if (currentUser.value.role === 'buyer') {
-          // 买家：查找 merchant_id 匹配的会话
-          return conv.merchant_id === targetUserId
-        } else if (currentUser.value.role === 'merchant') {
-          // 商家：查找 customer_id 匹配的会话
-          return conv.customer_id === targetUserId
-        }
-        return false
+        // 目标用户可能是 participant1 也可能是 participant2
+        return conv.participant1_id === targetUserId || conv.participant2_id === targetUserId
       })
       
       if (conversation) {

@@ -43,26 +43,26 @@
         <div class="avatars-group">
           <el-avatar 
             :size="36"
-            :src="conversation.customer?.avatar || undefined"
+            :src="conversation.participant1?.avatar || undefined"
             class="avatar-customer"
           >
-            {{ conversation.customer?.username?.charAt(0).toUpperCase() }}
+            {{ conversation.participant1?.username?.charAt(0).toUpperCase() }}
           </el-avatar>
           <el-avatar 
             :size="36"
-            :src="conversation.merchant?.avatar || undefined"
+            :src="conversation.participant2?.avatar || undefined"
             class="avatar-merchant"
           >
-            {{ conversation.merchant?.username?.charAt(0).toUpperCase() }}
+            {{ conversation.participant2?.username?.charAt(0).toUpperCase() }}
           </el-avatar>
         </div>
 
         <!-- 会话信息 -->
         <div class="conversation-info">
           <div class="participants">
-            <span class="customer-name">{{ conversation.customer?.username || '未知客户' }}</span>
+            <span class="customer-name">{{ conversation.participant1?.username || '未知用户' }}</span>
             <el-icon :size="12" class="arrow-icon"><Right /></el-icon>
-            <span class="merchant-name">{{ conversation.merchant?.username || '未知商户' }}</span>
+            <span class="merchant-name">{{ conversation.participant2?.username || '未知用户' }}</span>
           </div>
           <div class="last-message">
             {{ conversation.last_message || '暂无消息' }}
@@ -100,22 +100,22 @@ import { useChatStore } from '@/stores/chat'
 const chatStore = useChatStore()
 const searchKeyword = ref('')
 
-// 过滤后的会话列表（根据搜索关键词搜索客户或商户名）
+// 过滤后的会话列表（根据搜索关键词搜索参与者名）
 const filteredConversations = computed(() => {
   if (!searchKeyword.value.trim()) {
     return chatStore.conversations
   }
   const keyword = searchKeyword.value.toLowerCase()
   return chatStore.conversations.filter(conversation => 
-    conversation.customer?.username?.toLowerCase().includes(keyword) ||
-    conversation.merchant?.username?.toLowerCase().includes(keyword)
+    conversation.participant1?.username?.toLowerCase().includes(keyword) ||
+    conversation.participant2?.username?.toLowerCase().includes(keyword)
   )
 })
 
 // 计算总未读消息数
 const totalUnreadCount = computed(() => {
   return chatStore.conversations.reduce((sum, conv) => 
-    sum + (conv.customer_unread_count || 0) + (conv.merchant_unread_count || 0), 0
+    sum + (conv.participant1_unread || 0) + (conv.participant2_unread || 0), 0
   )
 })
 
@@ -127,9 +127,9 @@ function selectConversation(conversation) {
   chatStore.selectConversation(conversation)
 }
 
-// 获取单个会话的总未读数（客户+商户）
+// 获取单个会话的总未读数（参与者1+参与者2）
 function getTotalUnread(conversation) {
-  return (conversation.customer_unread_count || 0) + (conversation.merchant_unread_count || 0)
+  return (conversation.participant1_unread || 0) + (conversation.participant2_unread || 0)
 }
 
 function formatTime(time) {

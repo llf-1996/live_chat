@@ -12,8 +12,7 @@ router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
 @router.get("/", response_model=PaginatedResponse[ConversationResponse])
 async def get_conversations(
-    customer_id: str = None,  # 客户ID过滤
-    merchant_id: str = None,  # 商家ID过滤
+    user_id: str = None,      # 通用用户ID过滤（查询该用户参与的所有会话）
     page: int = 1,
     page_size: int = 20,
     db: AsyncSession = Depends(get_db)
@@ -21,22 +20,23 @@ async def get_conversations(
     """获取会话列表"""
     # 构建基础查询
     base_query = select(Conversation).options(
-        selectinload(Conversation.customer),
-        selectinload(Conversation.merchant)
+        selectinload(Conversation.participant1),
+        selectinload(Conversation.participant2)
     )
 
-    # 应用过滤条件
-    if customer_id:
-        base_query = base_query.where(Conversation.customer_id == customer_id)
-    if merchant_id:
-        base_query = base_query.where(Conversation.merchant_id == merchant_id)
-
-    # 获取总数
+    # 获取总数的基础查询
     count_query = select(func.count()).select_from(Conversation)
-    if customer_id:
-        count_query = count_query.where(Conversation.customer_id == customer_id)
-    if merchant_id:
-        count_query = count_query.where(Conversation.merchant_id == merchant_id)
+
+    # 应用过滤条件
+    if user_id:
+        # 查询用户参与的所有会话（无论是参与者1还是参与者2）
+        filter_condition = or_(
+            Conversation.participant1_id == user_id,
+            Conversation.participant2_id == user_id
+        )
+        base_query = base_query.where(filter_condition)
+        count_query = count_query.where(filter_condition)
+    
     count_result = await db.execute(count_query)
     total_count = count_result.scalar()
 
@@ -57,8 +57,8 @@ async def get_conversation(conversation_id: int, db: AsyncSession = Depends(get_
     result = await db.execute(
         select(Conversation)
         .options(
-            selectinload(Conversation.customer),
-            selectinload(Conversation.merchant)
+            selectinload(Conversation.participant1),
+            selectinload(Conversation.participant2)
         )
         .where(Conversation.id == conversation_id)
     )
@@ -69,66 +69,33 @@ async def get_conversation(conversation_id: int, db: AsyncSession = Depends(get_
 
 
 @router.post("/", response_model=ConversationResponse)
-async def create_conversation(
-    conversation: ConversationCreate,
-    db: AsyncSession = Depends(get_db)
-):
-    """创建或获取会话"""
-    # 验证客户和商家是否存在
-    customer_result = await db.execute(
-        select(User).where(User.id == conversation.customer_id)
-    )
-    customer = customer_result.scalar_one_or_none()
-    if not customer:
-        raise HTTPException(status_code=404, detail=f"Customer with id '{conversation.customer_id}' not found")
-    
-    merchant_result = await db.execute(
-        select(User).where(User.id == conversation.merchant_id)
-    )
-    merchant = merchant_result.scalar_one_or_none()
-    if not merchant:
-        raise HTTPException(status_code=404, detail=f"Merchant with id '{conversation.merchant_id}' not found")
-    
-    # 检查是否已存在会话
+async def create_conversation(conversation: ConversationCreate, db: AsyncSession = Depends(get_db)):
+    """创建会话"""
+    # 检查是否已存在
     result = await db.execute(
-        select(Conversation)
-        .where(
-            and_(
-                Conversation.customer_id == conversation.customer_id,
-                Conversation.merchant_id == conversation.merchant_id
+        select(Conversation).where(
+            or_(
+                and_(
+                    Conversation.participant1_id == conversation.participant1_id,
+                    Conversation.participant2_id == conversation.participant2_id
+                ),
+                and_(
+                    Conversation.participant1_id == conversation.participant2_id,
+                    Conversation.participant2_id == conversation.participant1_id
+                )
             )
         )
     )
     existing_conversation = result.scalar_one_or_none()
-
     if existing_conversation:
-        # 重新加载关联数据
-        result = await db.execute(
-            select(Conversation)
-            .options(
-                selectinload(Conversation.customer),
-                selectinload(Conversation.merchant)
-            )
-            .where(Conversation.id == existing_conversation.id)
-        )
-        return result.scalar_one()
+        return existing_conversation
 
     # 创建新会话
     db_conversation = Conversation(**conversation.dict())
     db.add(db_conversation)
     await db.commit()
     await db.refresh(db_conversation)
-
-    # 重新加载关联数据
-    result = await db.execute(
-        select(Conversation)
-        .options(
-            selectinload(Conversation.customer),
-            selectinload(Conversation.merchant)
-        )
-        .where(Conversation.id == db_conversation.id)
-    )
-    return result.scalar_one()
+    return db_conversation
 
 
 @router.get("/{conversation_id}/messages", response_model=PaginatedResponse[MessageResponse])
@@ -268,9 +235,9 @@ async def get_conversation_detail(conversation_id: int, db: AsyncSession = Depen
 
 
 @router.put("/{conversation_id}/read")
-async def mark_as_read(
+async def mark_conversation_as_read(
     conversation_id: int, 
-    user_id: str,  # 需要知道是谁在标记已读
+    user_id: str, 
     db: AsyncSession = Depends(get_db)
 ):
     """标记会话为已读"""
@@ -281,13 +248,11 @@ async def mark_as_read(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    # 根据用户身份清零对应的未读数
-    if user_id == conversation.customer_id:
-        # 客户标记已读 → 清零客户的未读数
-        conversation.customer_unread_count = 0
-    else:
-        # 商家标记已读 → 清零商家的未读数
-        conversation.merchant_unread_count = 0
+    # 根据用户ID清零对应的未读数
+    if conversation.participant1_id == user_id:
+        conversation.participant1_unread = 0
+    elif conversation.participant2_id == user_id:
+        conversation.participant2_unread = 0
     
     await db.commit()
     return {"status": "success"}

@@ -120,6 +120,7 @@
             <el-option label="买家" value="buyer" />
             <el-option label="商户" value="merchant" />
             <el-option label="管理员" value="admin" />
+            <el-option label="平台客服" value="platform" />
           </el-select>
         </el-form-item>
         <el-form-item label="描述">
@@ -350,7 +351,8 @@ function getRoleLabel(role) {
   const roleMap = {
     buyer: '买家',
     merchant: '商户',
-    admin: '管理员'
+    admin: '管理员',
+    platform: '平台客服'
   }
   return roleMap[role] || role
 }
@@ -359,7 +361,8 @@ function getRoleTagType(role) {
   const typeMap = {
     buyer: 'primary',
     merchant: 'warning',
-    admin: 'danger'
+    admin: 'danger',
+    platform: 'success'
   }
   return typeMap[role] || 'info'
 }
