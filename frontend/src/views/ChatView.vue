@@ -239,6 +239,12 @@ onUnmounted(() => {
   border-bottom: 2px solid #A8432F;
 }
 
+/* 平台客服（服务）- 柔和绿色渐变 */
+.user-header-platform {
+  background: linear-gradient(135deg, #52C41A 0%, #389E0D 100%);
+  border-bottom: 2px solid #237804;
+}
+
 .user-info {
   flex: 1;
 }
@@ -388,4 +394,3 @@ onUnmounted(() => {
   }
 }
 </style>
-
