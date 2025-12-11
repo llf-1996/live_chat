@@ -71,9 +71,14 @@ async def get_conversation(conversation_id: int, db: AsyncSession = Depends(get_
 @router.post("/", response_model=ConversationResponse)
 async def create_conversation(conversation: ConversationCreate, db: AsyncSession = Depends(get_db)):
     """创建会话"""
-    # 检查是否已存在
+    # 检查是否已存在（预加载关联对象）
     result = await db.execute(
-        select(Conversation).where(
+        select(Conversation)
+        .options(
+            selectinload(Conversation.participant1),
+            selectinload(Conversation.participant2)
+        )
+        .where(
             or_(
                 and_(
                     Conversation.participant1_id == conversation.participant1_id,
@@ -95,7 +100,17 @@ async def create_conversation(conversation: ConversationCreate, db: AsyncSession
     db.add(db_conversation)
     await db.commit()
     await db.refresh(db_conversation)
-    return db_conversation
+    
+    # 重新查询以加载关联对象
+    result = await db.execute(
+        select(Conversation)
+        .options(
+            selectinload(Conversation.participant1),
+            selectinload(Conversation.participant2)
+        )
+        .where(Conversation.id == db_conversation.id)
+    )
+    return result.scalar_one()
 
 
 @router.get("/{conversation_id}/messages", response_model=PaginatedResponse[MessageResponse])
